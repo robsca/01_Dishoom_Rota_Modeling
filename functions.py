@@ -1,137 +1,292 @@
 import pandas as pd
-import streamlit as st
 
-# 3. Translate the data and store it into the structure   
-def rota_tion(rota):
+# clean errors in the data
+# if guest_count >= 25, then the number of guest is the gross sales//average spent per guest
+
+
+def filter(data, start_date, end_date, restaurant):
     '''
-    This function takes the rota as INPUT -> returns a list of employees with their shifts in memory
-    It creates the employee database and store the information find in the rota.
-    It creates a graphical representation of the rota.
+    This function takes the data, the start date and the end date, and the list of restaurants.
+    It adds the Name of the day of the week to the dataframe,
+    and returns the dataframe filtered by the time period.
     '''
-    # GET THE DATA READY FOR PROCESSING
-    names    = rota['names'] # Get the names of the employees
-    mondays = list(rota['mondays']) # Get the mondays of the employees
-    tuesdays = list(rota['tuesdays']) # Get the tuesdays of the employees
-    wednesdays = list(rota['wednesdays']) # Get the wednesdays of the employees
-    thursdays = list(rota['thursdays']) # Get the thursdays of the employees
-    fridays = list(rota['fridays']) # Get the fridays of the employees
-    saturdays = list(rota['saturdays']) # Get the saturdays of the employees
-    sundays = list(rota['sundays']) # Get the sundays of the employees
+    data_filtered = data[(data['Date'] >= start_date) & (data['Date'] <= end_date)]
+    data_filtered = data_filtered[data_filtered['Store_Name'] == restaurant]
     
-    week_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-    week_ = [mondays, tuesdays, wednesdays, thursdays, fridays, saturdays, sundays]
+    #for every row in the dataframe if the gross
+    for index, row in data_filtered.iterrows():
+        # if the guest count is greater than 25, then the number of guest is the gross sales//average spent per guest
+        if row['Guest_Count'] >= 25:
+            data_filtered.at[index, 'Guest_Count'] = row['Gross_Sales']//25
+    return data_filtered
 
-    # PREPARE THE DATA FOR THE Shift Object transformation
-    week_data_bridge = []
-    for d, day in enumerate(week_):
-        day_ = [] # emply list to store the day data
-        for e, shift in enumerate(day):
+def get_empoloyees_hours_day_by_day_grouped_by_hour_(path, restaurant, start_date, end_date):
+    # open xlsx file
+    data = pd.read_excel(path)
+    '''
+    INPUT -> 
+        data, restaurant name, start date, end date, choice of departments
+    Output -> 
+        It returns a list of dataframe (one for each day) with the Hour, and the Count of empployees working that hour.
+        out = [day1, day2, day3, ...]
+        day*n = pd.DataFrame([[hour, count], [hour, count], ...], columns=['Hour', 'Count'])
 
-            day = week_days[d] # name of the current day
-            name = names[e] # name of the current employee
+    '''
+    # Modify datetime format in Shift date column
+    data['Shift date'] = pd.to_datetime(data['Shift date'])
+    data['Shift date'] = data['Shift date'].dt.strftime('%m-%d-%Y')
 
-            if shift == '0':
-                # Build shift for off day
-                start = None
-                end = None
-                role = None
-                off = True
+    # Filter data by restaurant and date
+    data_filtered = data[(data['Shift date'] >= start_date) & (data['Shift date'] <= end_date)]
+    restaurant = restaurant.split("-")[1].strip(" ")  # clean the restaurant Name
+    data_filtered = data_filtered[data_filtered['Home']==restaurant]
+
+    # Split dataframe by day
+    unique_dates = data_filtered['Shift date'].unique()
+    unique_dates = sorted(unique_dates)
+    table_by_day = []
+    for i in range(len(unique_dates)):
+        table_by_day.append(data_filtered[data_filtered['Shift date'] == unique_dates[i]])
+    
+    # TRANSFORM DATAFRAME FOR EVERY SINGLE DAY INTO A DATAFRAME WITH THE HOURS AND THE COUNT OF EACH HOUR
+    #1.  Create a list with all the shift -> 
+    #              list_all_shift =  [ 
+    #                                  [shift1, shift2, shift3, ...], -> day 1
+    #                                  [shift1, shift2, shift3, ...], -> day 2
+    #                                  [shift1, shift2, shift3, ...], -> day 3
+    #                                  ...
+    #                                ]
+    #             shift1 = [start, stop, role]
+    #             shift2 = [start, stop, role]
+    #             shift3 = [start, stop, role]
+    #             ...
+    
+    list_all_shifts = []
+    for i in range(len(table_by_day)):
+        all_starts = table_by_day[i]['Paid/Actual StartTime1']
+        all_stops  = table_by_day[i]['Paid/Actual StopTime1']
+        all_roles  = table_by_day[i]['Division']
+        shift_of_the_day = []
+        for start, stop, role in zip(all_starts, all_stops, all_roles):
+            shift_of_the_day.append([start, stop, role])
+        list_all_shifts.append(shift_of_the_day)    
+
+    #2.  Clean and modify start and end time to be processable
+    for i in range(len(list_all_shifts)):
+        for j in range(len(list_all_shifts[i])):
+            list_all_shifts[i][j][0] = str(list_all_shifts[i][j][0])[:-2] # remove the last two characters
+            list_all_shifts[i][j][1] = str(list_all_shifts[i][j][1])[:-2] # remove the last two characters
+            if list_all_shifts[i][j][0] == "0" and list_all_shifts[i][j][1] == "0" or list_all_shifts[i][j][0] == 0 and list_all_shifts[i][j][1] == 0:
+                continue
+            elif list_all_shifts[i][j][1] == "":
+                list_all_shifts[i][j][1] = "24"
+            elif list_all_shifts[i][j][1] == "0" or list_all_shifts[i][j][1] == 0:
+                list_all_shifts[i][j][1] = "24"
+            elif list_all_shifts[i][j][1] == "1" or list_all_shifts[i][j][1] == 1:
+                list_all_shifts[i][j][1] = "25"
+            elif list_all_shifts[i][j][1] == "2" or list_all_shifts[i][j][1] == 2:
+                list_all_shifts[i][j][1] = "26"
+            elif list_all_shifts[i][j][1] == "3" or list_all_shifts[i][j][1] == 3:
+                list_all_shifts[i][j][1] = "27"
+
+    #3. Tranform the list into a list of -> [ [start_time, start_time + 1, start_time +2 ... end_time],
+    #                                         [start_time, start_time + 1, start_time +2 ... end_time], 
+    #                                         ...]
+
+    list_all_shifts_transformed = []
+    for e in range(len(list_all_shifts)):
+        list_of_day = []
+        for j in range(len(list_all_shifts[e])):
+            shift = []
+            start = list_all_shifts[e][j][0]
+            end = list_all_shifts[e][j][1]
+            if start == "":
+                continue
             else:
-                shift = str(shift)
-                shift = shift.split(',')
-                # Build shift for work day
-                start = shift[0]
-                end = shift[1]
-                role = shift[2]
-                off = False
+                for k in range(int(start), int(end)):
+                    shift.append(k)
+                list_of_day.append(shift)
 
-            shift_ = [day, name, start, end, role, off] # gather args for shift
-            day_.append(shift_)             # add shift to day
-        week_data_bridge.append(day_) # add day to week
+        #4. Merge the list of day into one list
+        list_of_day_merged = []
+        for i in range(len(list_of_day)):
+            list_of_day_merged.extend(list_of_day[i])
+        #5. count how many times each value appears
+        count_hours = pd.DataFrame([[i, list_of_day_merged.count(i)] for i in list_of_day_merged], columns=['Hour', 'Count Employees'])
+        # delete duplicates
+        count_hours = count_hours.drop_duplicates()
+        # sort by hour
+        count_hours = count_hours.sort_values(by=['Hour'])
+        # index is hour
+        count_hours.index = count_hours['Hour']
+        # delete hour column
+        count_hours = count_hours.drop(columns=['Hour'])
+        list_all_shifts_transformed.append(count_hours)
 
-    # Now the data can be transform into the Shift Object
-    employees = []
-    mondays = week_data_bridge[0]       # get the monday shifts
-    tuesdays = week_data_bridge[1]      # get the tuesday shifts
-    wednesdays = week_data_bridge[2]    # get the wednesday shifts
-    thursdays = week_data_bridge[3]     # get the thursday shifts
-    fridays = week_data_bridge[4]       # get the friday shifts
-    saturdays = week_data_bridge[5]     # get the saturday shifts
-    sundays = week_data_bridge[6]       # get the sunday shifts
+    return list_all_shifts_transformed
 
-    # CONNECT THE SHIFTS TO THE EMPLOYEES
-    for i in range(len(names)):
-        employees.append(employee(names[i], mondays[i], tuesdays[i], wednesdays[i], thursdays[i], fridays[i], saturdays[i], sundays[i]))
-
-    # print(employees)
-    verbose = False # put it to true to see the output and check for mistakes
-    if verbose:
-        for employee_ in employees:
-            for shift in employee_.week:
-                print(employee_.name)
-                print(shift.start)
-                print(shift.end) 
-                print(shift.role)
-                print(shift.off)
-                print(shift.hour_today)
-                print('\n')
-    return employees, week_data_bridge
-
-def create_graphs(employees, week_data_bridge):
-    # everything works until this point
-    #---
-    # plot monday
-    #---
-    weeks_ =[]
-    weeks_roles = []
-    for i, day in enumerate(week_data_bridge):
-        day_ = []
-        day_roles = []
-        for employee_ in employees:
-            if employee_.week[i].off == False:
-                today = employee_.week[i].hour_today
-                today_role = employee_.week[i].role
-                for element in today:
-                    day_.append(element)
-                    day_roles.append(today_role)
-
-        weeks_.append(day_)
-        weeks_roles.append(day_roles)
-    # print(weeks_)
-    return weeks_
-
-def get_store_data(store_, report):
+def get_empoloyees_hours_day_by_day_grouped_by_hour(data, restaurant, start_date, end_date):
+    # open xlsx file
     '''
-    This function take the store name as input,
-    and returns the data of the store ordered by date, 
-    grouped by hour.
+    INPUT -> 
+        data, restaurant name, start date, end date, choice of departments
+    Output -> 
+        It returns a list of dataframe (one for each day) with the Hour, and the Count of empployees working that hour.
+        out = [day1, day2, day3, ...]
+        day*n = pd.DataFrame([[hour, count], [hour, count], ...], columns=['Hour', 'Count'])
+
     '''
-    df = pd.read_csv(report)
+    # Modify datetime format in Shift date column
+    data['Shift date'] = pd.to_datetime(data['Shift date'])
+    data['Shift date'] = data['Shift date'].dt.strftime('%m-%d-%Y')
 
-    # Clean from 0 values
-    df = df.drop(df[df['Item_Sales'] == 0].index)
-    df = df.drop(df[df['Net_Sales'] == df['Void_Total']].index)
+    # Filter data by restaurant and date
+    data_filtered = data[(data['Shift date'] >= start_date) & (data['Shift date'] <= end_date)]
+    restaurant = restaurant.split("-")[1].strip(" ")  # clean the restaurant Name
+    data_filtered = data_filtered[data_filtered['Home']==restaurant]
 
-    # divide data by store
-    df = df[df['Store_Name'] == store_]
+    # Split dataframe by day
+    unique_dates = data_filtered['Shift date'].unique()
+    unique_dates = sorted(unique_dates)
+    table_by_day = []
+    for i in range(len(unique_dates)):
+        table_by_day.append(data_filtered[data_filtered['Shift date'] == unique_dates[i]])
+    
+    # TRANSFORM DATAFRAME FOR EVERY SINGLE DAY INTO A DATAFRAME WITH THE HOURS AND THE COUNT OF EACH HOUR
+    #1.  Create a list with all the shift -> 
+    #              list_all_shift =  [ 
+    #                                  [shift1, shift2, shift3, ...], -> day 1
+    #                                  [shift1, shift2, shift3, ...], -> day 2
+    #                                  [shift1, shift2, shift3, ...], -> day 3
+    #                                  ...
+    #                                ]
+    #             shift1 = [start, stop, role]
+    #             shift2 = [start, stop, role]
+    #             shift3 = [start, stop, role]
+    #             ...
+    
+    list_all_shifts = []
+    for i in range(len(table_by_day)):
+        all_starts = table_by_day[i]['Paid/Actual StartTime1']
+        all_stops  = table_by_day[i]['Paid/Actual StopTime1']
+        all_roles  = table_by_day[i]['Division']
+        shift_of_the_day = []
+        for start, stop, role in zip(all_starts, all_stops, all_roles):
+            shift_of_the_day.append([start, stop, role])
+        list_all_shifts.append(shift_of_the_day)    
 
-    # Create a different table for each date
-    dates = df['Date'].unique()
+    #2.  Clean and modify start and end time to be processable
+    for i in range(len(list_all_shifts)):
+        for j in range(len(list_all_shifts[i])):
+            list_all_shifts[i][j][0] = str(list_all_shifts[i][j][0])[:-2] # remove the last two characters
+            list_all_shifts[i][j][1] = str(list_all_shifts[i][j][1])[:-2] # remove the last two characters
+            if list_all_shifts[i][j][0] == "0" and list_all_shifts[i][j][1] == "0" or list_all_shifts[i][j][0] == 0 and list_all_shifts[i][j][1] == 0:
+                continue
+            elif list_all_shifts[i][j][1] == "":
+                list_all_shifts[i][j][1] = "24"
+            elif list_all_shifts[i][j][1] == "0" or list_all_shifts[i][j][1] == 0:
+                list_all_shifts[i][j][1] = "24"
+            elif list_all_shifts[i][j][1] == "1" or list_all_shifts[i][j][1] == 1:
+                list_all_shifts[i][j][1] = "25"
+            elif list_all_shifts[i][j][1] == "2" or list_all_shifts[i][j][1] == 2:
+                list_all_shifts[i][j][1] = "26"
+            elif list_all_shifts[i][j][1] == "3" or list_all_shifts[i][j][1] == 3:
+                list_all_shifts[i][j][1] = "27"
+
+    #3. Tranform the list into a list of -> [ [start_time, start_time + 1, start_time +2 ... end_time],
+    #                                         [start_time, start_time + 1, start_time +2 ... end_time], 
+    #                                         ...]
+
+    list_all_shifts_transformed = []
+    for e in range(len(list_all_shifts)):
+        list_of_day = []
+        for j in range(len(list_all_shifts[e])):
+            shift = []
+            start = list_all_shifts[e][j][0]
+            end = list_all_shifts[e][j][1]
+            if start == "":
+                continue
+            else:
+                for k in range(int(start), int(end)):
+                    shift.append(k)
+                list_of_day.append(shift)
+
+        #4. Merge the list of day into one list
+        list_of_day_merged = []
+        for i in range(len(list_of_day)):
+            list_of_day_merged.extend(list_of_day[i])
+        #5. count how many times each value appears
+        count_hours = pd.DataFrame([[i, list_of_day_merged.count(i)] for i in list_of_day_merged], columns=['Hour', 'Count Employees'])
+        # delete duplicates
+        count_hours = count_hours.drop_duplicates()
+        # sort by hour
+        count_hours = count_hours.sort_values(by=['Hour'])
+        # index is hour
+        count_hours.index = count_hours['Hour']
+        # delete hour column
+        count_hours = count_hours.drop(columns=['Hour'])
+        list_all_shifts_transformed.append(count_hours)
+
+    return list_all_shifts_transformed
+
+def get_store_data_day_by_day_grouped_by_hour(path, restaurant, start_date, end_date, measure = 'Guest_Count'):
+    df = pd.read_csv(path)
+    # for every row in the dataframe if the gross 
+    data_single_store = filter(df, start_date, end_date, restaurant)
+    # Filter data taking only the store
+    data_single_store = pd.DataFrame(data_single_store[data_single_store['Store_Name'] == restaurant])
+    data_single_store = data_single_store.drop(columns=['Store_Name'])
+    # Get unique dates
+    dates = data_single_store['Date'].unique()
+    dates = sorted(dates)
     table_by_date = []
     for date in dates:
-        table_by_date.append(pd.DataFrame(df[df['Date'] == date])) 
+        day = data_single_store[data_single_store['Date'] == date]
+        day = day.drop(columns=['Date'])
+        # Group by hour and count how many times each hour appears
+        day = day.set_index('Hour')
+        day = day.groupby(day.index).sum()
+        # guest count is int
+        day = day[measure].astype(int)
+        table_by_date.append(pd.DataFrame(day))
+    return table_by_date
+    
+def get_ratio_GUESTvs_EMPLOYEE(pathGUEST, pathEMPLOYEE, restaurant, start_date, end_date):
+    # import data
+    employees_data_2022 = get_empoloyees_hours_day_by_day_grouped_by_hour(pathEMPLOYEE, restaurant, start_date, end_date)
+    guests_data_2022 = get_store_data_day_by_day_grouped_by_hour(pathGUEST, restaurant, start_date, end_date)
+    
+    '''
+    Iterate through the days and compare the number of employees and guests
 
-    hours_stats = []
-    for i, df_ in enumerate(table_by_date):
-        # group by hour
-        data_ = df_.groupby('Hour').sum()
-        #plot
-        hour_guest_count = list(data_['Guest_Count'].values)
+    '''
+    ratio_GUESTvsEMPLOYEE = []
+    for day in range(len(employees_data_2022)):
+        day_df = []
+        day_2022_empl = employees_data_2022[day]
+        day_2022_guest = guests_data_2022[day]
 
-        hours_stats.append(hour_guest_count)
-    return hours_stats
+        for hour in day_2022_empl.index:
+            if hour in day_2022_guest.index:
+                number_of_employees = day_2022_empl[day_2022_empl.index == hour]['Count Employees'].values[0]
+                number_of_guest = day_2022_guest.loc[hour].values[0]
+                ratio = number_of_guest/number_of_employees
+                row = [hour,ratio]
+                # select a specific index
+            else:
+                ratio = 0
+                row = [hour, ratio]
+
+            day_df.append(row)
+        day_df = pd.DataFrame(day_df, columns=['Hour', 'Ratio'])
+        ratio_GUESTvsEMPLOYEE.append(day_df)
+    return ratio_GUESTvsEMPLOYEE
 
 def calculate_moving_average(lst, window_size, verbose=False):
+    '''
+    Calculate moving average of a list of values with a window size,
+    returns a list of same length with the moving average values.
+    '''
     moving_average = []
     for i in range(len(lst)):
         if i < window_size:
@@ -146,113 +301,278 @@ def calculate_moving_average(lst, window_size, verbose=False):
         print('Batch:', batch, 'Average:', average)
     return moving_average
 
-def UI_Plotter(x, rota_, constraint, actual_rota, shifts, week_tot):
-    import plotly.graph_objects as go
-    ##### Plotting stuff
-    if st.selectbox('Plot the rota', ['Line', 'Bar']) == 'Line':
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=x, y=rota_, name='Automatic_Rota'))
-        fig.add_trace(go.Scatter(x=x, y=constraint, name='Constraint'))
-        fig.add_trace(go.Scatter(x=x, y=actual_rota, name='Actual_rota'))
-    else:
-        fig = go.Figure()
-        fig.add_trace(go.Bar(x=x, y=rota_, name='Automatic_Rota'))
-        fig.add_trace(go.Bar(x=x, y=constraint, name='Constraint'))
-        fig.add_trace(go.Bar(x=x, y=actual_rota, name='Actual_rota'))
-    st.plotly_chart(fig)
+def get_empoloyees_hours_day_by_day_grouped_by_hour_role(path, restaurant, choice_of_departments):
+    # open xlsx file
+    data = pd.read_excel(path)
+    '''
+    INPUT -> 
+        data, restaurant name, start date, end date, choice of departments
+    Output -> 
+        It returns a list of dataframe (one for each day) with the Hour, and the Count of empployees working that hour.
+        out = [day1, day2, day3, ...]
+        day*n = pd.DataFrame([[hour, count], [hour, count], ...], columns=['Hour', 'Count'])
 
-    optimal_cost = sum(constraint)*9.50
-    optimal_hours = sum(constraint)
-    algo_esteban_cost = sum(rota_)*9.50
-    algo_esteban_hours = sum(rota_)
-    actual_cost = sum(actual_rota)*9.50
-    actual_hours = sum(actual_rota)
+    '''
+    # Modify datetime format in Shift date column
+    data['Shift date'] = pd.to_datetime(data['Shift date'])
+    data['Shift date'] = data['Shift date'].dt.strftime('%m-%d-%Y')
 
-    st.write('Optimal cost:', optimal_cost, 'Optimal hours:', optimal_hours)
-    st.write('Algo_Esteban cost:', algo_esteban_cost, 'Algo_Esteban hours:', algo_esteban_hours)
-    st.write('Actual cost:', actual_cost, 'Actual hours:', actual_hours)
+    # Filter data by restaurant
+    restaurant = restaurant.split("-")[1].strip(" ")  # clean the restaurant Name
+    if choice_of_departments != 'All':
+        data_filtered = data_filtered[data_filtered['Division']==choice_of_departments]
 
+    # Split dataframe by day
+    unique_dates = data_filtered['Shift date'].unique()
+    unique_dates = sorted(unique_dates)
+    table_by_day = []
+    for i in range(len(unique_dates)):
+        table_by_day.append(data_filtered[data_filtered['Shift date'] == unique_dates[i]])
+
+    # TRANSFORM DATAFRAME FOR EVERY SINGLE DAY INTO A DATAFRAME WITH THE HOURS AND THE COUNT OF EACH HOUR
+    #1.  Create a list with all the shift -> 
+    #              list_all_shift =  [ 
+    #                                  [shift1, shift2, shift3, ...],
+    #                                  [shift1, shift2, shift3, ...],
+    #                                  [shift1, shift2, shift3, ...],
+    #                                  ...
+    #                                ]
+    #             shift1 = [start, stop, role]
+    #             shift2 = [start, stop, role]
+    #             shift3 = [start, stop, role]
+    #             ...
+    
+    list_all_shifts = []
+    for i in range(len(table_by_day)):
+        all_starts = table_by_day[i]['Paid/Actual StartTime1']
+        all_stops  = table_by_day[i]['Paid/Actual StopTime1']
+        all_roles  = table_by_day[i]['Division']
+        shift_of_the_day = []
+        for start, stop, role in zip(all_starts, all_stops, all_roles):
+            shift_of_the_day.append([start, stop, role])
+        list_all_shifts.append(shift_of_the_day)    
+    # get unique roles
 
     
+    #2.  Clean and modify start and end time to be processable
+    for i in range(len(list_all_shifts)):
+        for j in range(len(list_all_shifts[i])):
+            list_all_shifts[i][j][0] = str(list_all_shifts[i][j][0])[:-2] # remove the last two characters
+            list_all_shifts[i][j][1] = str(list_all_shifts[i][j][1])[:-2] # remove the last two characters
+            if list_all_shifts[i][j][0] == "0" and list_all_shifts[i][j][1] == "0" or list_all_shifts[i][j][0] == 0 and list_all_shifts[i][j][1] == 0:
+                continue
+            elif list_all_shifts[i][j][1] == "":
+                list_all_shifts[i][j][1] = "24"
+            elif list_all_shifts[i][j][1] == "0" or list_all_shifts[i][j][1] == 0:
+                list_all_shifts[i][j][1] = "24"
+            elif list_all_shifts[i][j][1] == "1" or list_all_shifts[i][j][1] == 1:
+                list_all_shifts[i][j][1] = "25"
+            elif list_all_shifts[i][j][1] == "2" or list_all_shifts[i][j][1] == 2:
+                list_all_shifts[i][j][1] = "26"
+            elif list_all_shifts[i][j][1] == "3" or list_all_shifts[i][j][1] == 3:
+                list_all_shifts[i][j][1] = "27"
+
+    #3. Tranform the list into a list of -> [ [start_time, start_time + 1, start_time +2 ... end_time],
+    #                                         [start_time, start_time + 1, start_time +2 ... end_time], 
+    #                                         ...]
+
+    list_all_shifts_transformed = []
+    roles_all_shifts_tranformed = []
+    for e in range(len(list_all_shifts)):
+        list_of_day = []
+        roles_of_day = []
+        for j in range(len(list_all_shifts[e])):
+            shift = []
+            role_shift = []
+            start = list_all_shifts[e][j][0]
+            end = list_all_shifts[e][j][1]
+            role = list_all_shifts[e][j][2]
+            if start == "":
+                continue
+            else:
+                for k in range(int(start), int(end)):
+                    shift.append(k)
+                    role_shift.append(role)
+                list_of_day.append(shift)
+                roles_of_day.append(role_shift)
 
 
-    with st.expander('Weekly Totals'):
-        st.write(f'Total Cost with Actual Rota:')
-        st.write(f'{sum(week_tot)*9.50}£')
+        #4. Merge the list of day into one list -> ndim(1) -> Days = [
+        #                                                            [hour, hour, ....] -> day1
+        #                                                            [hour, hour, ....] -> day2
+        #                                                            ...
+        #                                                            [hour, hour, ....] -> dayn
+        #                                                            ]
+        list_of_day_merged = []
+        list_of_roles_merged = []
+        for i in range(len(list_of_day)):
+            list_of_day_merged.extend(list_of_day[i])
+            list_of_roles_merged.extend(roles_of_day[i])
 
-    with st.expander('Show the generated shifts'):
-        for i, shift in enumerate(shifts):
-            start = shift[0]
-            end = shift[1]
-            x = st.slider(f'Employee {i+1}', 8, 25, (start, end), key = i)
-            if x[0] != start or x[1] != end:
-                st.write(f'Employee {i+1} changed from {start} to {x[0]} and from {end} to {x[1]}')
-                # modify the shift
-                shifts[i] = x
-                
-            st.write("---")
+        # Count HOURS EMPLOYEES
+        #5. count how many times each value appears
+        count_hours = pd.DataFrame([[i, list_of_day_merged.count(i)] for i in list_of_day_merged], columns=['Hour', 'Count Employees'])
+        # delete duplicates
+        count_hours = count_hours.drop_duplicates()
+        # sort by hour
+        count_hours = count_hours.sort_values(by=['Hour'])
+        # index is hour
+        count_hours.index = count_hours['Hour']
+        # delete hour column
+        count_hours = count_hours.drop(columns=['Hour'])
+        # add to list of all days
+        list_all_shifts_transformed.append(count_hours)
+
+        # Count ROLES EMPLOYEES
+        # count each role in the list of roles
+        count_roles = pd.DataFrame([[i, list_of_roles_merged.count(i)] for i in list_of_roles_merged], columns=['Role', 'Count Employees'])
+        # delete duplicates
+        count_roles = count_roles.drop_duplicates()
+        # sort by count
+        count_roles = count_roles.sort_values(by=['Count Employees'], ascending=False)
+        # change index to role
+        count_roles.index = count_roles['Role']
+        # delete hour column
+        count_roles = count_roles.drop(columns=['Role'])
+        # add to list of roles
+        roles_all_shifts_tranformed.append(count_roles)
+    return list_all_shifts_transformed, roles_all_shifts_tranformed
+
+def get_empoloyees_hours_day_by_day_grouped_by_hour_role_(data, restaurant, start_date, end_date, choice_of_departments):
+    # open xlsx file
+    '''
+    INPUT -> 
+        data, restaurant name, start date, end date, choice of departments
+    Output -> 
+        It returns a list of dataframe (one for each day) with the Hour, and the Count of empployees working that hour.
+        out = [day1, day2, day3, ...]
+        day*n = pd.DataFrame([[hour, count], [hour, count], ...], columns=['Hour', 'Count'])
+
+    '''
+    # Modify datetime format in Shift date column
+    data['Shift date'] = pd.to_datetime(data['Shift date'])
+    data['Shift date'] = data['Shift date'].dt.strftime('%m-%d-%Y')
+
+    # Filter data by restaurant and date
+    data_filtered = data[(data['Shift date'] >= start_date) & (data['Shift date'] <= end_date)]
+    restaurant = restaurant.split("-")[1].strip(" ")  # clean the restaurant Name
+    data_filtered = data_filtered[data_filtered['Home']==restaurant]
+    if choice_of_departments != 'All':
+        data_filtered = data_filtered[data_filtered['Division']==choice_of_departments]
+
+    # Split dataframe by day
+    unique_dates = data_filtered['Shift date'].unique()
+    unique_dates = sorted(unique_dates)
+    table_by_day = []
+    for i in range(len(unique_dates)):
+        table_by_day.append(data_filtered[data_filtered['Shift date'] == unique_dates[i]])
+
+    # TRANSFORM DATAFRAME FOR EVERY SINGLE DAY INTO A DATAFRAME WITH THE HOURS AND THE COUNT OF EACH HOUR
+    #1.  Create a list with all the shift -> 
+    #              list_all_shift =  [ 
+    #                                  [shift1, shift2, shift3, ...],
+    #                                  [shift1, shift2, shift3, ...],
+    #                                  [shift1, shift2, shift3, ...],
+    #                                  ...
+    #                                ]
+    #             shift1 = [start, stop, role]
+    #             shift2 = [start, stop, role]
+    #             shift3 = [start, stop, role]
+    #             ...
     
-def get_totals(weeks_):
-    totals = []
-    for week in weeks_:
-        # get unique values
-        unique_values = list(set(week))
-        # get the count of each unique value
-        counts = [week.count(i) for i in unique_values]
-        # get the total
-        total = sum(counts)
-        totals.append(total)
-    return totals
+    list_all_shifts = []
+    for i in range(len(table_by_day)):
+        all_starts = table_by_day[i]['Paid/Actual StartTime1']
+        all_stops  = table_by_day[i]['Paid/Actual StopTime1']
+        all_roles  = table_by_day[i]['Division']
+        shift_of_the_day = []
+        for start, stop, role in zip(all_starts, all_stops, all_roles):
+            shift_of_the_day.append([start, stop, role])
+        list_all_shifts.append(shift_of_the_day)    
+    # get unique roles
 
-
-# Transform the data into the right form -> # get hour_by_hour data
-def unified(df):
-    # Now we have to store in memory a different table for each store taking into account the date and the time,
-    # at the end group by date
-    # ---
-    stores = df['Store_Name'].unique()
-    table_by_store = []
-    for store in stores:
-        # select only the store
-        data_single_store = pd.DataFrame(df[df['Store_Name'] == store])
-        data_single_store = data_single_store.drop(columns=['Store_Name'])
-        
-        # Create a new column with the date and time, merging the two columns
-        # lambda function to create a new column with the date ---> pd.to_datetime(df['sale_date'], format='%d/%m/%y %H:%M:%S')
-        data_single_store['Date'] = data_single_store.apply(lambda x: x['Date'] + ' ' + str(str(x['Hour']) + ':' + '00'), axis=1)
-        # convert to datetime
-        data_single_store['Date'] = pd.to_datetime(data_single_store['Date'])
-        # set to index
-        data_single_store = data_single_store.set_index('Date')
-        # group by index
-        data_single_store = data_single_store.groupby(data_single_store.index).sum()
-        # change columns name
-        data_single_store.columns = [f'{col} - {store}' for col in data_single_store.columns]
-        # add to the list
-        table_by_store.append(pd.DataFrame(data_single_store))
-
-    # unify the dataframe for the plotting
-    df_unified = pd.concat(table_by_store, axis=1)
-    return df_unified
-
-def unified_(df, store):
-    # Now we have to store in memory a different table for each store taking into account the date and the time,
-    # at the end group by date
-    # ---
-    stores = df['Store_Name'] = store
-    # select only the store
-    data_single_store = pd.DataFrame(df[df['Store_Name'] == store])
-    data_single_store = data_single_store.drop(columns=['Store_Name'])
     
-    dates = data_single_store['Date'].unique()
-    table_by_date = []
-    for date in dates:
-        day = data_single_store[data_single_store['Date'] == date]
-        day = day.drop(columns=['Date'])
-        day = day.set_index('Hour')
-        day = day.groupby(day.index).sum()
-        day.columns = [f'{col} - {store} - {date}' for col in day.columns]
-        table_by_date.append(pd.DataFrame(day))
-    df_unified = table_by_date
-    # unify the dataframe for the plotting
-    return df_unified
+    #2.  Clean and modify start and end time to be processable
+    for i in range(len(list_all_shifts)):
+        for j in range(len(list_all_shifts[i])):
+            list_all_shifts[i][j][0] = str(list_all_shifts[i][j][0])[:-2] # remove the last two characters
+            list_all_shifts[i][j][1] = str(list_all_shifts[i][j][1])[:-2] # remove the last two characters
+            if list_all_shifts[i][j][0] == "0" and list_all_shifts[i][j][1] == "0" or list_all_shifts[i][j][0] == 0 and list_all_shifts[i][j][1] == 0:
+                continue
+            elif list_all_shifts[i][j][1] == "":
+                list_all_shifts[i][j][1] = "24"
+            elif list_all_shifts[i][j][1] == "0" or list_all_shifts[i][j][1] == 0:
+                list_all_shifts[i][j][1] = "24"
+            elif list_all_shifts[i][j][1] == "1" or list_all_shifts[i][j][1] == 1:
+                list_all_shifts[i][j][1] = "25"
+            elif list_all_shifts[i][j][1] == "2" or list_all_shifts[i][j][1] == 2:
+                list_all_shifts[i][j][1] = "26"
+            elif list_all_shifts[i][j][1] == "3" or list_all_shifts[i][j][1] == 3:
+                list_all_shifts[i][j][1] = "27"
+
+    #3. Tranform the list into a list of -> [ [start_time, start_time + 1, start_time +2 ... end_time],
+    #                                         [start_time, start_time + 1, start_time +2 ... end_time], 
+    #                                         ...]
+
+    list_all_shifts_transformed = []
+    roles_all_shifts_tranformed = []
+    for e in range(len(list_all_shifts)):
+        list_of_day = []
+        roles_of_day = []
+        for j in range(len(list_all_shifts[e])):
+            shift = []
+            role_shift = []
+            start = list_all_shifts[e][j][0]
+            end = list_all_shifts[e][j][1]
+            role = list_all_shifts[e][j][2]
+            if start == "":
+                continue
+            else:
+                for k in range(int(start), int(end)):
+                    shift.append(k)
+                    role_shift.append(role)
+                list_of_day.append(shift)
+                roles_of_day.append(role_shift)
+
+
+        #4. Merge the list of day into one list -> ndim(1) -> Days = [
+        #                                                            [hour, hour, ....] -> day1
+        #                                                            [hour, hour, ....] -> day2
+        #                                                            ...
+        #                                                            [hour, hour, ....] -> dayn
+        #                                                            ]
+        list_of_day_merged = []
+        list_of_roles_merged = []
+        for i in range(len(list_of_day)):
+            list_of_day_merged.extend(list_of_day[i])
+            list_of_roles_merged.extend(roles_of_day[i])
+
+        # Count HOURS EMPLOYEES
+        #5. count how many times each value appears
+        count_hours = pd.DataFrame([[i, list_of_day_merged.count(i)] for i in list_of_day_merged], columns=['Hour', 'Count Employees'])
+        # delete duplicates
+        count_hours = count_hours.drop_duplicates()
+        # sort by hour
+        count_hours = count_hours.sort_values(by=['Hour'])
+        # index is hour
+        count_hours.index = count_hours['Hour']
+        # delete hour column
+        count_hours = count_hours.drop(columns=['Hour'])
+        # add to list of all days
+        list_all_shifts_transformed.append(count_hours)
+
+        # Count ROLES EMPLOYEES
+        # count each role in the list of roles
+        count_roles = pd.DataFrame([[i, list_of_roles_merged.count(i)] for i in list_of_roles_merged], columns=['Role', 'Count Employees'])
+        # delete duplicates
+        count_roles = count_roles.drop_duplicates()
+        # sort by count
+        count_roles = count_roles.sort_values(by=['Count Employees'], ascending=False)
+        # change index to role
+        count_roles.index = count_roles['Role']
+        # delete hour column
+        count_roles = count_roles.drop(columns=['Role'])
+        # add to list of roles
+        roles_all_shifts_tranformed.append(count_roles)
+    return list_all_shifts_transformed, roles_all_shifts_tranformed
+
