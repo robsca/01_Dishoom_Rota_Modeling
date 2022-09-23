@@ -14,8 +14,5 @@ pip3 install hydralit_components
 pip3 install torch
 pip3 install scikit-learn
 ```
-
-To install tensorflow: ->
-
 ---
 
