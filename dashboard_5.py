@@ -1,4 +1,3 @@
-from __future__ import annotations
 import streamlit as st
 st.set_page_config(layout='wide',initial_sidebar_state='collapsed')
 import pandas as pd
@@ -156,10 +155,9 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
     #--- PLOT THE DATA
     # HEATMAP 2019
     import plotly.express as px
-    st.subheader('Heatmap 2019')
     z = data_guest_heatmap_2019
     z = z.values.tolist()
-    fig = px.imshow(z, text_auto=True)
+    fig = px.imshow(z, text_auto=True, title='Heatmap 2019')
     fig.update_xaxes(
         ticktext=data_guest_heatmap_2019.columns,
         tickvals=list(range(len(data_guest_heatmap_2019.columns))),
@@ -181,10 +179,9 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
     st.plotly_chart(fig, use_container_width=True)
     # ------
     # HEATMAP 2022
-    st.subheader('Heatmap 2022')
     z = data_guest_heatmap_2022
     z = z.values.tolist()
-    fig = px.imshow(z, text_auto=True)
+    fig = px.imshow(z, text_auto=True, title='Heatmap 2022')
     fig.update_xaxes(
         ticktext=data_guest_heatmap_2022.columns,
         tickvals=list(range(len(data_guest_heatmap_2022.columns))),
@@ -206,7 +203,6 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
     st.plotly_chart(fig, use_container_width=True)
     # ----------------- #
     # DIFFERENCE HEATMAP
-    st.subheader('Difference in %')
     difference_between_years = data_guest_heatmap_2022 - data_guest_heatmap_2019
     # express difference in %
     difference_between_years = difference_between_years/data_guest_heatmap_2019 * 100
@@ -215,7 +211,7 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
     z = difference_between_years
     # transform in list of list
     z = z.values.tolist()
-    fig = px.imshow(z, text_auto=True)
+    fig = px.imshow(z, text_auto=True, title='Difference between 2019 and 2022')
     # add index
     fig.update_xaxes(
         ticktext=difference_between_years.columns,
