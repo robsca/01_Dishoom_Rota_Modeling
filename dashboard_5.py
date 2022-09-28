@@ -107,7 +107,7 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
     import numpy as np
     restaurants = np.append(restaurants, 'All Restaurants')
 
-    restaurant = st.selectbox('Select restaurant', restaurants)
+    restaurant = st.sidebar.selectbox('Select restaurant', restaurants)
     if restaurant is not 'All Restaurant':
         # filter out restaurant not choosen
         covers2019 = covers2019[covers2019['Store_Name'] == restaurant]
@@ -225,6 +225,8 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
             title="Guests 2022",
             titleside="right",
             tickmode="array",
+            # green is positive, red is negative
+            tickvals=[difference_between_years.values.min(), 0, difference_between_years.values.max()],
             ticks="outside"
         )
     ))
