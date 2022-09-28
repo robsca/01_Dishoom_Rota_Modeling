@@ -176,6 +176,13 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
             size=14,
         )
     )
+     # modify size
+    fig.update_layout(
+        autosize=False,
+        width=1400,
+        height=600,
+    )
+
     st.plotly_chart(fig, use_container_width=True)
     # ------
     # HEATMAP 2022
@@ -199,6 +206,12 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
             family="Rockwell",
             size=14,
         )
+    )
+     # modify size
+    fig.update_layout(
+        autosize=False,
+        width=1400,
+        height=600,
     )
     st.plotly_chart(fig, use_container_width=True)
     # ----------------- #
@@ -231,4 +244,11 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
             size=14,
         )
     )
+    # modify size
+    fig.update_layout(
+        autosize=False,
+        width=1400,
+        height=600,
+    )
+
     st.plotly_chart(fig, use_container_width=True)
