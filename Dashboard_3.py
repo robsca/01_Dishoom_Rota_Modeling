@@ -25,8 +25,8 @@ def one():
     st.sidebar.title('Rota Modeling')
 
     with st.sidebar.expander('Import data'):
-        uploaded_file_1 = st.file_uploader("Select Employees Data")
-        uploaded_file_2 = st.file_uploader("Select Covers Data")
+        uploaded_file_1 = st.file_uploader("Select Employees Data", key='1')
+        uploaded_file_2 = st.file_uploader("Select Covers Data", key='2')
 
     if uploaded_file_1 is not None and uploaded_file_2 is not None:
         data_employee = create_final_timeseries(uploaded_file_1,uploaded_file_2)
@@ -173,4 +173,4 @@ def one():
         )
         st.plotly_chart(fig, use_container_width=True)
 
-one()
+#one()

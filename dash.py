@@ -1,11 +1,7 @@
 import streamlit as st
 st.set_page_config(layout='wide',initial_sidebar_state='collapsed')
 
-import pandas as pd
-import plotly.graph_objs as go
-from plotly.subplots import make_subplots
 import hydralit_components as hc
-import numpy as np
 
 def menu():
     # Images
