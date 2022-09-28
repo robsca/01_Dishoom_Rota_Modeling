@@ -1,3 +1,4 @@
+from __future__ import annotations
 import streamlit as st
 st.set_page_config(layout='wide',initial_sidebar_state='collapsed')
 import pandas as pd
@@ -113,7 +114,7 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
         covers2019 = covers2019[covers2019['Store_Name'] == restaurant]
         covers2022 = covers2022[covers2022['Store_Name'] == restaurant]
     # ----------------- #
-    # CREATE HEATMAP 2019
+    # CREATE HEATMAP 2019 and 2022
     # Filter out hours < 9 and > 23
     covers2019 = covers2019[(covers2019.index.hour >= 9) & (covers2019.index.hour < 23)]
     covers2022 = covers2022[(covers2022.index.hour >= 9) & (covers2022.index.hour < 23)]
@@ -152,92 +153,86 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
         st.write(data_guest_heatmap_2019)
         st.write(data_guest_heatmap_2022)
 
-    # plot as go
-    import plotly.graph_objects as go
-    fig = go.Figure(data=go.Heatmap(    
-        z=data_guest_heatmap_2019.values,
-        x=data_guest_heatmap_2019.columns,
-        y=data_guest_heatmap_2019.index[::-1],
-        colorscale='Turbo',
-        # set as min of the whole dataset
-        zmin=data_guest_heatmap_2019.values.min(),
-        # set as max of the whole df
-        zmax=data_guest_heatmap_2019.values.max(),
-        colorbar=dict(
-            title="Guests ",
-            titleside="right",
-            tickmode="array",
-            ticks="outside"
+    #--- PLOT THE DATA
+    # HEATMAP 2019
+    import plotly.express as px
+    st.subheader('Heatmap 2019')
+    z = data_guest_heatmap_2019
+    z = z.values.tolist()
+    fig = px.imshow(z, text_auto=True)
+    fig.update_xaxes(
+        ticktext=data_guest_heatmap_2019.columns,
+        tickvals=list(range(len(data_guest_heatmap_2019.columns))),
+        tickangle=45,
+        tickfont=dict(
+            family="Rockwell",
+            size=14,
         )
-    ))
-    fig.update_layout(
-        title="Guests 2019",
-        xaxis_title="Hour",
-        yaxis_title="Day of week",
-        legend_title="Legend Title",
-        font=dict(
-            family="Courier New, monospace",
-            color="#7f7f7f"
+    )
+    fig.update_yaxes(
+        ticktext=data_guest_heatmap_2019.index[::-1],
+        tickvals=list(range(len(data_guest_heatmap_2019.index[::-1]))),
+        tickangle=0,
+        tickfont=dict(
+            family="Rockwell",
+            size=14,
         )
     )
     st.plotly_chart(fig, use_container_width=True)
-
-    fig = go.Figure(data=go.Heatmap(    
-        z=data_guest_heatmap_2022.values,
-        x=data_guest_heatmap_2022.columns,
-        y=data_guest_heatmap_2022.index[::-1],
-        colorscale='Turbo',
-        # set as min of the whole dataset
-        zmin=data_guest_heatmap_2022.values.min(),
-        # set as max of the whole df
-        zmax=data_guest_heatmap_2022.values.max(),
-        colorbar=dict(
-            title="Guests 2022",
-            titleside="right",
-            tickmode="array",
-            ticks="outside"
+    # ------
+    # HEATMAP 2022
+    st.subheader('Heatmap 2022')
+    z = data_guest_heatmap_2022
+    z = z.values.tolist()
+    fig = px.imshow(z, text_auto=True)
+    fig.update_xaxes(
+        ticktext=data_guest_heatmap_2022.columns,
+        tickvals=list(range(len(data_guest_heatmap_2022.columns))),
+        tickangle=45,
+        tickfont=dict(
+            family="Rockwell",
+            size=14,
         )
-    ))
-    fig.update_layout(
-        title="Guests 2022",
-        xaxis_title="Hour",
-        yaxis_title="Day of week",
-        legend_title="Legend Title",
-        font=dict(
-            family="Courier New, monospace",
-            color="#7f7f7f"
+    )
+    fig.update_yaxes(
+        ticktext=data_guest_heatmap_2022.index[::-1],
+        tickvals=list(range(len(data_guest_heatmap_2022.index[::-1]))),
+        tickangle=0,
+        tickfont=dict(
+            family="Rockwell",
+            size=14,
         )
     )
     st.plotly_chart(fig, use_container_width=True)
-
     # ----------------- #
+    # DIFFERENCE HEATMAP
+    st.subheader('Difference in %')
     difference_between_years = data_guest_heatmap_2022 - data_guest_heatmap_2019
-    fig = go.Figure(data=go.Heatmap(
-        z=difference_between_years.values,
-        x=difference_between_years.columns,
-        y=difference_between_years.index[::-1],
-        colorscale='Turbo',
-        # set as min of the whole dataset
-        zmin=difference_between_years.values.min(),
-        # set as max of the whole df
-        zmax=difference_between_years.values.max(),
-        colorbar=dict(
-            title="Guests 2022",
-            titleside="right",
-            tickmode="array",
-            # green is positive, red is negative
-            tickvals=[difference_between_years.values.min(), 0, difference_between_years.values.max()],
-            ticks="outside"
+    # express difference in %
+    difference_between_years = difference_between_years/data_guest_heatmap_2019 * 100
+    # round to 2 decimal
+    difference_between_years = difference_between_years.round(2)
+    z = difference_between_years
+    # transform in list of list
+    z = z.values.tolist()
+    fig = px.imshow(z, text_auto=True)
+    # add index
+    fig.update_xaxes(
+        ticktext=difference_between_years.columns,
+        tickvals=list(range(len(difference_between_years.columns))),
+        tickangle=45,
+        tickfont=dict(
+            family="Rockwell",
+            size=14,
         )
-    ))
-    fig.update_layout(
-        title="Difference between 2019 and 2022",
-        xaxis_title="Hour",
-        yaxis_title="Day of week",
-        legend_title="Legend Title",
-        font=dict(
-            family="Courier New, monospace",
-            color="#7f7f7f"
+    )
+    fig.update_yaxes(
+        ticktext=difference_between_years.index[::-1],
+        tickvals=list(range(len(difference_between_years.index[::-1]))),
+        tickangle=0,
+        tickfont=dict(
+            family="Rockwell",
+            size=14,
         )
     )
     st.plotly_chart(fig, use_container_width=True)
