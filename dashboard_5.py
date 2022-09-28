@@ -157,7 +157,7 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
     import plotly.express as px
     z = data_guest_heatmap_2019
     z = z.values.tolist()
-    fig = px.imshow(z, text_auto=True, title='Heatmap 2019')
+    fig = px.imshow(z, text_auto=True, title='Heatmap 2019 - Covers')
     fig.update_xaxes(
         ticktext=data_guest_heatmap_2019.columns,
         tickvals=list(range(len(data_guest_heatmap_2019.columns))),
@@ -188,7 +188,7 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
     # HEATMAP 2022
     z = data_guest_heatmap_2022
     z = z.values.tolist()
-    fig = px.imshow(z, text_auto=True, title='Heatmap 2022')
+    fig = px.imshow(z, text_auto=True, title='Heatmap 2022 - Covers')
     fig.update_xaxes(
         ticktext=data_guest_heatmap_2022.columns,
         tickvals=list(range(len(data_guest_heatmap_2022.columns))),
@@ -224,7 +224,7 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
     z = difference_between_years
     # transform in list of list
     z = z.values.tolist()
-    fig = px.imshow(z, text_auto=True, title='Difference between 2019 and 2022')
+    fig = px.imshow(z, text_auto=True, title='Difference between 2019 and 2022 in %')
     # add index
     fig.update_xaxes(
         ticktext=difference_between_years.columns,
