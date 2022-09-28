@@ -210,7 +210,35 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
     )
     st.plotly_chart(fig, use_container_width=True)
 
-
-
+    # ----------------- #
+    difference_between_years = data_guest_heatmap_2022 - data_guest_heatmap_2019
+    fig = go.Figure(data=go.Heatmap(
+        z=difference_between_years.values,
+        x=difference_between_years.columns,
+        y=difference_between_years.index[::-1],
+        colorscale='Turbo',
+        # set as min of the whole dataset
+        zmin=difference_between_years.values.min(),
+        # set as max of the whole df
+        zmax=difference_between_years.values.max(),
+        colorbar=dict(
+            title="Guests 2022",
+            titleside="right",
+            tickmode="array",
+            ticks="outside"
+        )
+    ))
+    fig.update_layout(
+        title="Difference between 2019 and 2022",
+        xaxis_title="Hour",
+        yaxis_title="Day of week",
+        legend_title="Legend Title",
+        font=dict(
+            family="Courier New, monospace",
+            color="#7f7f7f"
+        )
+    )
+    st.plotly_chart(fig, use_container_width=True)
+    
 
     
