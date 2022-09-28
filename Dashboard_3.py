@@ -1,3 +1,21 @@
+'''
+author: Roberto Scalas
+date: 2022-09-23
+---
+This Dashboard take data from Fourth and Aloha (ideally of the same time period) and returns a downloadable csv file.
+The csv file contains the following columns:
+    - Date_time(index)
+    - Store_Name
+    - Guest_Count
+    - Employee_Count
+    - Day_of_Week
+    - Hour
+    - Time_of_day
+
+A line chart is generated showing the Guest_Count and Employee_Count for the selected store.
+A heatmap is also generated to show the ratio of Guests vs Employees per hour.
+'''
+
 import streamlit as st
 st.set_page_config(layout="wide")
 import pandas as pd
