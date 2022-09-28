@@ -241,6 +241,3 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
         )
     )
     st.plotly_chart(fig, use_container_width=True)
-    
-
-    
