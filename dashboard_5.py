@@ -1,3 +1,4 @@
+import re
 import streamlit as st
 st.set_page_config(layout='wide',initial_sidebar_state='auto')
 import pandas as pd
@@ -71,27 +72,27 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
     SPH_2019 = SPH_2019[SPH_2019['Day_Part_Name'] != 'Late Night']
     SPH_2022 = SPH_2022[SPH_2022['Day_Part_Name'] != 'Late Night']
 
-    # 4. Plot Data
-    with st.expander('SPH'):
-        # plot the data
-        fig_2019 = go.Figure()
-        for restaurant in SPH_2019['Store_Name'].unique():
-            fig_2019.add_trace(go.Bar
-                            (x=SPH_2019[SPH_2019['Store_Name'] == restaurant]['Day_Part_Name'],
-                            y=SPH_2019[SPH_2019['Store_Name'] == restaurant]['Spent_per_head'],
-                            name=restaurant))
-        fig_2019.update_layout(title='SPH 2019')
-        st.plotly_chart(fig_2019, use_container_width=True)
+    # 4. Plot Data - SPH
+    fig_2019 = go.Figure()
+    for restaurant in SPH_2019['Store_Name'].unique():
+        fig_2019.add_trace(go.Bar
+                        (x=SPH_2019[SPH_2019['Store_Name'] == restaurant]['Day_Part_Name'],
+                        y=SPH_2019[SPH_2019['Store_Name'] == restaurant]['Spent_per_head'],
+                        name=restaurant))
+    fig_2019.update_layout(title='SPH 2019')
+    # Plot 2019 SPH - All restaurants
+    #st.plotly_chart(fig_2019, use_container_width=True)
 
-        #---
-        fig_2022 = go.Figure()
-        for restaurant in SPH_2022['Store_Name'].unique():
-            fig_2022.add_trace(go.Bar
-                            (x=SPH_2022[SPH_2022['Store_Name'] == restaurant]['Day_Part_Name'],
-                            y=SPH_2022[SPH_2022['Store_Name'] == restaurant]['Spent_per_head'],
-                            name=restaurant))
-        fig_2022.update_layout(title='SPH 2022')
-        st.plotly_chart(fig_2022, use_container_width=True)
+    #---
+    fig_2022 = go.Figure()
+    for restaurant in SPH_2022['Store_Name'].unique():
+        fig_2022.add_trace(go.Bar
+                        (x=SPH_2022[SPH_2022['Store_Name'] == restaurant]['Day_Part_Name'],
+                        y=SPH_2022[SPH_2022['Store_Name'] == restaurant]['Spent_per_head'],
+                        name=restaurant))
+    fig_2022.update_layout(title='SPH 2022')
+    # Plot 2022 SPH - All restaurants
+    #st.plotly_chart(fig_2022, use_container_width=True)
 
     # 5. Precisly fill invalid data -> 
     # If guest count > 25 fill the values with the totals sales divided by SPH in that day part
@@ -204,6 +205,7 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
 
 
     #--- PLOT THE DATA
+    # 1st interface
     # HEATMAP 2019
     import plotly.express as px
     z = data_guest_heatmap_2019
@@ -229,12 +231,66 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
     )
      # modify size
     fig.update_layout(
-        autosize=False,
-        width=1400,
-        height=600,
+        autosize=True,
+        #width=1400,
+        #height=600,
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    # Plot SPH of only one restaurant
+    sph_2019 = SPH_2019
+    sph_2022 = SPH_2022
+    
+    # Modify store names with the second element after -
+    sph_2019['Store_Name'] = sph_2019['Store_Name'].str.split('-').str[1]
+    sph_2022['Store_Name'] = sph_2022['Store_Name'].str.split('-').str[1]
+    if restaurant is not 'All Restaurant':
+        sph_2019 = sph_2019[sph_2019['Store_Name'] == restaurant]
+        sph_2022 = sph_2022[sph_2022['Store_Name'] == restaurant]
+    else:
+        # drop store name
+        sph_2019 = sph_2019.drop('Store_Name', axis=1)
+        sph_2022 = sph_2022.drop('Store_Name', axis=1)
+
+    # plot as bar chart
+    SPH_fig_2019 = px.bar(sph_2019, x='Day_Part_Name', y='Spent_per_head', title='SPH 2019')
+    
+
+
+    # 2 interface
+    # group heatmap by indexc
+    grouped_2019 = data_guest_heatmap_2019.T
+    # get all the columns
+    columns = grouped_2019.columns
+    # get totals for each day
+    totals_2019 = grouped_2019.sum(axis=0)
+    # transform in datraframe and assign columns
+    totals_2019 = pd.DataFrame(totals_2019)
+    totals_2019.columns = ['Total']
+
+    # create graph  
+    fig2 = px.line(totals_2019, x=totals_2019.index, y='Total', title='Total Covers 2019')
+    fig2.update_xaxes(
+        ticktext=totals_2019.index,
+        tickvals=list(range(len(totals_2019.index))),
+        tickangle=45,
+        tickfont=dict(
+            family="Rockwell",
+            size=14,
+        )
+    )
+    # modify size
+    fig2.update_layout(
+        autosize=True,
+        #width=1400,
+        #height=600,
+    )
+    with st.expander('2019'):
+        c1,c2 = st.columns(2)
+        c1.plotly_chart(fig)
+        c2.plotly_chart(fig2)
+        c2.plotly_chart(SPH_fig_2019)
+
+
     # ------
     # HEATMAP 2022
     z = data_guest_heatmap_2022
@@ -260,11 +316,16 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
     )
      # modify size
     fig.update_layout(
-        autosize=False,
-        width=1400,
-        height=600,
+        autosize=True,
+        #width=1400,
+        #height=600,
     )
-    st.plotly_chart(fig, use_container_width=True)
+    
+    with st.expander('2022'):
+        c1,c2 = st.columns(2)
+        c1.plotly_chart(fig)
+        SPH_fig_2022 = px.bar(sph_2022, x='Day_Part_Name', y='Spent_per_head', title='SPH 2022')
+        c2.plotly_chart(SPH_fig_2022)
     
     # ----------------- #
     # DIFFERENCE HEATMAP
