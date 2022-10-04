@@ -9,6 +9,8 @@ with st.sidebar.expander('Import data'):
     uploaded_file_2 = st.file_uploader("2022")
 
 def get_SPH(df1,df2):
+    # This function returns the SPH for the 2019 and 2022 dataframes in every daypart
+    #-----------------
     # take off guest_count 0
     df1 = df1[df1['Guest_Count'] != 0]
     df2 = df2[df2['Guest_Count'] != 0]
@@ -16,7 +18,7 @@ def get_SPH(df1,df2):
     df1 = df1[df1['Guest_Count'] <= 25]
     df2 = df2[df2['Guest_Count'] <= 25]
     
-    # create a new columns calls Spent per head
+    # create a new columns calls Spent Per Head
     df1['Spent_per_head'] = df1['Net_Sales']/df1['Guest_Count']
     df2['Spent_per_head'] = df2['Net_Sales']/df2['Guest_Count']
     
@@ -45,18 +47,31 @@ def get_SPH(df1,df2):
     SPH_2022 = pd.DataFrame(SPH_list_2022, columns=['Store_Name', 'Spent_per_head',  'Day_Part_Name'])
     #st.write(SPH_2019)
     #st.write(SPH_2022)
+    '''
+    Save as csv file
+    '''
     return SPH_2019, SPH_2022
 
 if uploaded_file_1 is not None and uploaded_file_2 is not None:
+    # 1. Open the csv files
     df1 = pd.read_csv(uploaded_file_1)
     df2 = pd.read_csv(uploaded_file_2)
+    # delete if total_sales is == to total void
 
-    # take off guest_count 0
-    df1 = df1[df1['Guest_Count'] != 0]
-    df2 = df2[df2['Guest_Count'] != 0]
+    # 2. try opening the csv file
+    try:
+        SPH_2019 = pd.read_csv('SPH_2019.csv')
+        SPH_2022 = pd.read_csv('SPH_2022.csv')
+    except:
+        SPH_2019, SPH_2022 = get_SPH(df1,df2)
+        SPH_2019.to_csv('SPH_2019.csv', index=False)
+        SPH_2022.to_csv('SPH_2022.csv', index=False)
 
-    SPH_2019, SPH_2022 = get_SPH(df1,df2)
+    # 3. take off day part late night
+    SPH_2019 = SPH_2019[SPH_2019['Day_Part_Name'] != 'Late Night']
+    SPH_2022 = SPH_2022[SPH_2022['Day_Part_Name'] != 'Late Night']
 
+    # 4. Plot Data
     with st.expander('SPH'):
         # plot the data
         fig_2019 = go.Figure()
@@ -78,45 +93,79 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
         fig_2022.update_layout(title='SPH 2022')
         st.plotly_chart(fig_2022, use_container_width=True)
 
-    # add spent per head to the original dataframes store name and day part
-    df1 = df1.merge(SPH_2019, on=['Store_Name', 'Day_Part_Name'])
-    df2 = df2.merge(SPH_2022, on=['Store_Name', 'Day_Part_Name'])
-
-
-    # if guest_count is > 25 divide sales by SPH of the restaurant
-    df1['Guest_Count'] = df1.apply(lambda x: x['Net_Sales']//x['Spent_per_head'] if x['Guest_Count'] > 25 else x['Guest_Count'], axis=1)
-    df2['Guest_Count'] = df2.apply(lambda x: x['Net_Sales']//x['Spent_per_head'] if x['Guest_Count'] > 25 else x['Guest_Count'], axis=1)
-
+    # 5. Precisly fill invalid data -> 
+    # If guest count > 25 fill the values with the totals sales divided by SPH in that day part
+    try:
+        df1 = pd.read_csv('df1.csv')
+        df2 = pd.read_csv('df2.csv')
+    except:
+        # add spent per head to the original dataframes store name and day part
+        df1 = df1.merge(SPH_2019, on=['Store_Name', 'Day_Part_Name'])
+        df2 = df2.merge(SPH_2022, on=['Store_Name', 'Day_Part_Name'])
+        # if guest_count is > 25 divide sales by SPH of the restaurant
+        df1['Guest_Count'] = df1.apply(lambda x: x['Net_Sales']//x['Spent_per_head'] if x['Guest_Count'] > 25 else x['Guest_Count'], axis=1)
+        df2['Guest_Count'] = df2.apply(lambda x: x['Net_Sales']//x['Spent_per_head'] if x['Guest_Count'] > 25 else x['Guest_Count'], axis=1)
+        # if net sales == 0 drop the row
+        df1 = df1[df1['Net_Sales'] != 0]
+        df2 = df2[df2['Net_Sales'] != 0]
+        # if guest count == 0 drop the row
+        df1 = df1[df1['Guest_Count'] != 0]
+        df2 = df2[df2['Guest_Count'] != 0]
+        # if net sales == total void drop the row
+        df1 = df1[df1['Net_Sales'] != df1['Void_Total']]
+        # save the dataframes
+        df1.to_csv('df1.csv', index=False)
+        df2.to_csv('df2.csv', index=False)
     #---
-    with st.expander('Data 1st Processing'):
-        st.write(df1)
-        st.write(df2)
+    # 6. Show data
+    #with st.expander('Data 1st Processing'):
+    #    st.write(df1)
+    #    st.write(df2)
 
-    # modify
-    covers2019 = create_timeries_covers(df1)
-    covers2022 = create_timeries_covers(df2)
+    # 7. Open the csv file of timeseries cover data if not exist create it
+    try:
+        covers2019 = pd.read_csv('covers_2019.csv')
+        covers2022 = pd.read_csv('covers_2022.csv')
+    except:
+        covers2019 = create_timeries_covers(df1)
+        covers2022 = create_timeries_covers(df2)
+        # save as csv
+        covers2019.to_csv('covers_2019.csv', index=False)
+        covers2022.to_csv('covers_2022.csv', index=False)
 
-    with st.expander('Data 2nd Processing'):
-        st.write(covers2019)
-        st.write(covers2022)
+    # 8. Show data
+    #with st.expander('Data 2nd Processing'):
+    #    st.write(covers2019)
+    #    st.write(covers2022)
 
-    # select restarants
-    # create a list of restaurants
-    restaurants = covers2019['Store_Name'].unique()
-    # add all restaurants to the list
+    
+    
+    # 9. Select restarants
+    # Create a list of restaurants
     import numpy as np
+    restaurants = covers2019['Store_Name'].unique()
     restaurants = np.append(restaurants, 'All Restaurants')
 
     restaurant = st.sidebar.selectbox('Select restaurant', restaurants)
+    
+    # 10. Filter the data
     if restaurant is not 'All Restaurant':
         # filter out restaurant not choosen
         covers2019 = covers2019[covers2019['Store_Name'] == restaurant]
         covers2022 = covers2022[covers2022['Store_Name'] == restaurant]
+    else:
+        # drop store name
+        covers2019 = covers2019.drop('Store_Name', axis=1)
+        covers2022 = covers2022.drop('Store_Name', axis=1)
+
     # ----------------- #
     # CREATE HEATMAP 2019 and 2022
     # Filter out hours < 9 and > 23
-    covers2019 = covers2019[(covers2019.index.hour >= 9) & (covers2019.index.hour < 23)]
-    covers2022 = covers2022[(covers2022.index.hour >= 9) & (covers2022.index.hour < 23)]
+    # set index to date
+    covers2019 = covers2019[covers2019['Hour'] >= 9]
+    covers2019 = covers2019[covers2019['Hour'] <= 22]
+    covers2022 = covers2022[covers2022['Hour'] >= 9]
+    covers2022 = covers2022[covers2022['Hour'] <= 22]
     
     # group by day making average of the guests and employees
     days_of_week = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -148,9 +197,11 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
 
     data_guest_heatmap_2019 = pd.concat(frame_2019)
     data_guest_heatmap_2022 = pd.concat(frame_2022)
-    with st.expander('Heatmap_data'):
-        st.write(data_guest_heatmap_2019)
-        st.write(data_guest_heatmap_2022)
+    
+    #with st.expander('Heatmap_data'):
+    #    st.write(data_guest_heatmap_2019)
+    #    st.write(data_guest_heatmap_2022)
+
 
     #--- PLOT THE DATA
     # HEATMAP 2019
@@ -214,6 +265,7 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
         height=600,
     )
     st.plotly_chart(fig, use_container_width=True)
+    
     # ----------------- #
     # DIFFERENCE HEATMAP
     difference_between_years = data_guest_heatmap_2022 - data_guest_heatmap_2019
