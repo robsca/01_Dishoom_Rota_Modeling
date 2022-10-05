@@ -1267,11 +1267,11 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
             )
         )
         fig.update_yaxes(
-            ticktext=difference_between_years.index,
+            ticktext=[day[:3] for day in difference_between_years.index],
             tickvals=list(range(len(difference_between_years.index))),
             tickangle=0,
             tickfont=dict(
-                family="Rockwell",
+                family="MonoSpace",
                 size=14,
             )
         )
@@ -1299,16 +1299,16 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
             tickvals=list(range(len(difference_between_years.columns))),
             tickangle=45,
             tickfont=dict(
-                family="Rockwell",
+                family="Monospace",
                 size=14,
             )
         )
         fig_percentage.update_yaxes(
-            ticktext=difference_between_years.index,
+            ticktext=[day[:3] for day in difference_between_years.index],
             tickvals=list(range(len(difference_between_years.index))),
             tickangle=0,
             tickfont=dict(
-                family="Rockwell",
+                family="MonoSpace",
                 size=14,
             )
         )
