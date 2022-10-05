@@ -1,3 +1,5 @@
 # To do list
 ---
-1. SPH single Restaurant 
+Adjust graph weekly_covers fill = tozeroy - rewrite it as graph object
+4th graph = SPH * Average totals in Day Part
+

@@ -13,6 +13,8 @@ pip3 install openpyxl
 pip3 install hydralit_components
 pip3 install torch
 pip3 install scikit-learn
+pip3 install hydralit_components
+pip3 install matplotlib
 ```
 ---
 

@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 
 def two():
-
     with st.sidebar.expander('Import data'):
         uploaded_file_1 = st.file_uploader("Data 1")
         uploaded_file_2 = st.file_uploader("Data 2")
