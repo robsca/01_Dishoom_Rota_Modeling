@@ -372,15 +372,13 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
         # ----------------- #
         # DIFFERENCE HEATMAP
         difference_between_years = data_guest_heatmap_2022 - data_guest_heatmap_2019
-        # express difference in %
-        difference_between_years = difference_between_years/data_guest_heatmap_2019 * 100
         # round to 0 decimal
         difference_between_years = difference_between_years.round(0)
         hours = difference_between_years.columns[:-4]
         z = difference_between_years[hours]
         # transform in list of list
         z = z.values.tolist()
-        fig = px.imshow(z, text_auto=True, title='Difference between 2019 and 2022 in %')
+        fig = px.imshow(z, text_auto=True, title='2019 vs 2022 - Actual Covers Difference')
         # add index
         fig.update_xaxes(
             ticktext=difference_between_years.columns,
@@ -407,6 +405,45 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
             #height=600,
         )
 
+        # ----------------- #
+        # ----------------- #
+        # DIFFERENCE HEATMAP in %
+        difference_between_years = data_guest_heatmap_2022 - data_guest_heatmap_2019
+        # express difference in %
+        difference_between_years = difference_between_years/data_guest_heatmap_2019 * 100
+        # round to 0 decimal
+        difference_between_years = difference_between_years.round(0)
+        hours = difference_between_years.columns[:-4]
+        z = difference_between_years[hours]
+        # transform in list of list
+        z = z.values.tolist()
+        fig_percentage = px.imshow(z, text_auto=True, title='Difference between 2019 and 2022 in %')
+        # add index
+        fig_percentage.update_xaxes(
+            ticktext=difference_between_years.columns,
+            tickvals=list(range(len(difference_between_years.columns))),
+            tickangle=45,
+            tickfont=dict(
+                family="Rockwell",
+                size=14,
+            )
+        )
+        fig_percentage.update_yaxes(
+            ticktext=difference_between_years.index,
+            tickvals=list(range(len(difference_between_years.index))),
+            tickangle=0,
+            tickfont=dict(
+                family="Rockwell",
+                size=14,
+            )
+        )
+        # modify size
+        fig_percentage.update_layout(
+            autosize=True,
+            #width=1400,
+            #height=600,
+        )
+        
         # ----------------- #
 
         # plot differences last 4 columns
@@ -447,11 +484,15 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
         # PLOT ALL GRAPHS
         with st.expander(f'{restaurant} - 2019 vs 2022'):
             c1,c2 = st.columns(2)
+            # row 1
             c1.plotly_chart(fig)
+            c2.plotly_chart(fig_percentage)
+            # row 2
             c1.plotly_chart(diff_sph_fig)
-            c2.plotly_chart(fig_2019_2022)
             c2.plotly_chart(fig_day_part_)
-    
+            # row 3
+            st.plotly_chart(fig_2019_2022, use_container_width=True)
+
     # ----------------- #
     
     elif choosen == 'month':
@@ -833,15 +874,13 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
         # ----------------- #
         # DIFFERENCE HEATMAP
         difference_between_years = data_guest_heatmap_2022 - data_guest_heatmap_2019
-        # express difference in %
-        difference_between_years = difference_between_years/data_guest_heatmap_2019 * 100
-        # round to 0 decimal
+        # round the values
         difference_between_years = difference_between_years.round(0)
         hours = difference_between_years.columns[:-4]
         z = difference_between_years[hours]
         # transform in list of list
         z = z.values.tolist()
-        fig = px.imshow(z, text_auto=True, title=f'Difference between 2019 and 2022 in % - {restaurant} - {month}')
+        fig = px.imshow(z, text_auto=True, title=f'Actual Covers - 2019 vs 2022 - {restaurant} - {month}')
         # add index
         fig.update_xaxes(
             ticktext=difference_between_years.columns,
@@ -868,6 +907,44 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
             #height=600,
         )
 
+        # ----------------- #
+        # ----------------- #
+        # DIFFERENCE HEATMAP
+        difference_between_years = data_guest_heatmap_2022 - data_guest_heatmap_2019
+        # express difference in %
+        difference_between_years = difference_between_years/data_guest_heatmap_2019 * 100
+        # round to 0 decimal
+        difference_between_years = difference_between_years.round(0)
+        hours = difference_between_years.columns[:-4]
+        z = difference_between_years[hours]
+        # transform in list of list
+        z = z.values.tolist()
+        fig_percentage = px.imshow(z, text_auto=True, title=f'Difference between 2019 and 2022 in % - {restaurant} - {month}')
+        # add index
+        fig_percentage.update_xaxes(
+            ticktext=difference_between_years.columns,
+            tickvals=list(range(len(difference_between_years.columns))),
+            tickangle=45,
+            tickfont=dict(
+                family="Rockwell",
+                size=14,
+            )
+        )
+        fig_percentage.update_yaxes(
+            ticktext=difference_between_years.index,
+            tickvals=list(range(len(difference_between_years.index))),
+            tickangle=0,
+            tickfont=dict(
+                family="Rockwell",
+                size=14,
+            )
+        )
+        # modify size
+        fig_percentage.update_layout(
+            autosize=True,
+            #width=1400,
+            #height=600,
+        )
         # ----------------- #
 
         # plot differences last 4 columns
@@ -908,10 +985,15 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
         # PLOT ALL GRAPHS
         with st.expander(f'{month} - {restaurant} - 2019 vs 2022'):
             c1,c2 = st.columns(2)
+            # row 1
             c1.plotly_chart(fig)
+            c2.plotly_chart(fig_percentage)
+            # row 2
             c1.plotly_chart(diff_sph_fig)
-            c2.plotly_chart(fig_2019_2022)
             c2.plotly_chart(fig_day_part_)
+            # row 3
+            st.plotly_chart(fig_2019_2022, use_container_width=True)
+
     
     # ----------------- #
 
@@ -1167,15 +1249,13 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
         # ----------------- #
         # DIFFERENCE HEATMAP
         difference_between_years = data_guest_heatmap_2022 - data_guest_heatmap_2019
-        # express difference in %
-        difference_between_years = difference_between_years/data_guest_heatmap_2019 * 100
         # round to 0 decimal
         difference_between_years = difference_between_years.round(0)
         hours = difference_between_years.columns[:-4]
         z = difference_between_years[hours]
         # transform in list of list
         z = z.values.tolist()
-        fig = px.imshow(z, text_auto=True, title='Difference between 2019 and 2022 in %')
+        fig = px.imshow(z, text_auto=True, title=f'Actual Covers Difference - 2022 vs 2019 - {restaurant}')
         # add index
         fig.update_xaxes(
             ticktext=difference_between_years.columns,
@@ -1197,6 +1277,43 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
         )
         # modify size
         fig.update_layout(
+            autosize=True,
+            #width=1400,
+            #height=600,
+        )
+        # ----------------- #
+        # DIFFERENCE HEATMAP %
+        difference_between_years = data_guest_heatmap_2022 - data_guest_heatmap_2019
+        # express difference in %
+        difference_between_years = difference_between_years/data_guest_heatmap_2019 * 100
+        # round to 0 decimal
+        difference_between_years = difference_between_years.round(0)
+        hours = difference_between_years.columns[:-4]
+        z = difference_between_years[hours]
+        # transform in list of list
+        z = z.values.tolist()
+        fig_percentage = px.imshow(z, text_auto=True, title='Difference between 2019 and 2022 in %')
+        # add index
+        fig_percentage.update_xaxes(
+            ticktext=difference_between_years.columns,
+            tickvals=list(range(len(difference_between_years.columns))),
+            tickangle=45,
+            tickfont=dict(
+                family="Rockwell",
+                size=14,
+            )
+        )
+        fig_percentage.update_yaxes(
+            ticktext=difference_between_years.index,
+            tickvals=list(range(len(difference_between_years.index))),
+            tickangle=0,
+            tickfont=dict(
+                family="Rockwell",
+                size=14,
+            )
+        )
+        # modify size
+        fig_percentage.update_layout(
             autosize=True,
             #width=1400,
             #height=600,
@@ -1241,10 +1358,16 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
         # PLOT ALL GRAPHS
         with st.expander(f'Week {week_number} - {restaurant} - 2019 vs 2022'):
             c1,c2 = st.columns(2)
+            # row 1
             c1.plotly_chart(fig)
+            c2.plotly_chart(fig_percentage)
+            # row 2
             c1.plotly_chart(diff_sph_fig)
-            c2.plotly_chart(fig_2019_2022)
             c2.plotly_chart(fig_day_part_)
+            # row 3
+            st.plotly_chart(fig_2019_2022, use_container_width=True)
+
+
 
 
         
