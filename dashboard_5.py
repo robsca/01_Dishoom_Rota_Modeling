@@ -128,16 +128,16 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
         heatmap_2022 = plot_heatmap(data_guest_heatmap_2022, 'Covers 2022', show=False)
         
         # 6. Create the SPH graphs
-        SPH_fig_2019 = plot_SPH(SPH_2019, restaurant)
-        SPH_fig_2022 = plot_SPH(SPH_2022, restaurant)
+        SPH_fig_2019 = plot_SPH(SPH_2019, restaurant, show=False)
+        SPH_fig_2022 = plot_SPH(SPH_2022, restaurant, show=False)
 
         # 7. Create the weekly totals
         weekly_covers_fig_2019, totals_2019 = plot_week_totals_typical_week(data_guest_heatmap_2019, 'Weekly Covers 2019', show=False)
         weekly_covers_fig_2022, totals_2022 = plot_week_totals_typical_week(data_guest_heatmap_2022, 'Weekly Covers 2022', show=False)
 
         # 8. Create the day_part_plot
-        day_part_covers_fig_2019 = plot_day_part_covers(data_guest_heatmap_2019, 'Day Part Covers 2019')
-        day_part_covers_fig_2022 = plot_day_part_covers(data_guest_heatmap_2022, 'Day Part Covers 2022')
+        day_part_covers_fig_2019 = plot_day_part_covers(data_guest_heatmap_2019, 'Day Part Covers 2019', show=False)
+        day_part_covers_fig_2022 = plot_day_part_covers(data_guest_heatmap_2022, 'Day Part Covers 2022', show=False)
 
         # 9. Create heatmap differences
         difference_between_years = data_guest_heatmap_2022 - data_guest_heatmap_2019
@@ -157,7 +157,7 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
         
         
         # 11. 
-        '''Correction now - might need to put in a function'''
+        #'''Correction now - might need to put in a function'''???
         # 1. Day_Part Differences -> last 4 columns -> breakfast, lunch, afternoon, dinner
         day_parts = difference_between_years.columns[-4:]
         fig_day_part_ = go.Figure()
@@ -239,6 +239,9 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
 
         covers2019 = add_month_and_week_number(covers2019)
         covers2022 = add_month_and_week_number(covers2022)
+
+        c_2019 = covers2019.copy()
+        c_2022 = covers2022.copy()
 
         # 1. Select restarants
         restaurant = st.sidebar.selectbox('Select restaurant', restaurants)
@@ -333,6 +336,77 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
         diff_sph_fig.add_trace(go.Bar(x=SPH_DIFF['Day_Part_Name'], y=SPH_2022['Spent_per_head'], name='2022'))
         diff_sph_fig.update_layout(title=f'Difference SPH 2019 vs 2022 {restaurant} - {month}')
         
+    # 16. create dataframe = month and totals
+        # filter c_2019 and c_2022 by restaurant
+        c_2019 = c_2019[c_2019['Store_Name'] == restaurant]
+        c_2022 = c_2022[c_2022['Store_Name'] == restaurant]
+
+        # apply function
+        month_df_2019 = get_month_totals(c_2019)
+        month_df_2022 = get_month_totals(c_2022)
+        # plot 2019
+        year_month_by_month_2019 = go.Figure()
+        year_month_by_month_2019.add_trace(go.Scatter(x=month_df_2019.index, y=month_df_2019['Guest_Count'], name='2019'))
+        # plot 2022
+        year_month_by_month_2022 = go.Figure()
+        year_month_by_month_2022.add_trace(go.Scatter(x=month_df_2022.index, y=month_df_2022['Guest_Count'], name='2022'))
+        # plot difference
+        month_df_2019['Guest_Count'] = month_df_2019['Guest_Count'].astype(int)
+        month_df_2022['Guest_Count'] = month_df_2022['Guest_Count'].astype(int)
+        diff_months = month_df_2022['Guest_Count'] - month_df_2019['Guest_Count']
+        # as percentage
+        diff_months = diff_months/month_df_2019['Guest_Count'] * 100
+        diff_months = {'Month': month_df_2019.index, 'Difference': diff_months}
+        diff_months = pd.DataFrame(diff_months)
+        # make subplot and set second y axis
+        from plotly.subplots import make_subplots
+        diff_months_fig = make_subplots(specs=[[{"secondary_y": True}]])
+        diff_months_fig.add_trace(go.Scatter(x=diff_months['Month'], y=diff_months['Difference'], name='Difference', fill = 'tonexty'), secondary_y=True)
+        diff_months_fig.add_trace(go.Bar(x=diff_months['Month'], y=month_df_2019['Guest_Count'], name='2019', opacity=0.6), secondary_y=False)
+        diff_months_fig.add_trace(go.Bar(x=diff_months['Month'], y=month_df_2022['Guest_Count'], name='2022', opacity= 0.6), secondary_y=False)
+        
+        # 17. Create a plot month by month that show day_part
+        #2019
+        breakfast_2019 = day_part_month_totals(c_2019, 'Breakfast')
+        lunch_2019 = day_part_month_totals(c_2019, 'Lunch')
+        afternoon_2019 = day_part_month_totals(c_2019, 'Afternoon')
+        dinner_2019 = day_part_month_totals(c_2019, 'Dinner')
+        #2022
+        breakfast_2022 = day_part_month_totals(c_2022, 'Breakfast')
+        lunch_2022 = day_part_month_totals(c_2022, 'Lunch')
+        afternoon_2022 = day_part_month_totals(c_2022, 'Afternoon')
+        dinner_2022 = day_part_month_totals(c_2022, 'Dinner')
+
+        #
+        day_part_month_by_month_2019 = go.Figure()
+        day_part_month_by_month_2019.add_trace(go.Bar(x=breakfast_2019.index, y=breakfast_2019['Guest_Count'], name='Breakfast 2019', opacity=0.6))
+        day_part_month_by_month_2019.add_trace(go.Bar(x=lunch_2019.index, y=lunch_2019['Guest_Count'], name='Lunch 2019', opacity=0.6))
+        day_part_month_by_month_2019.add_trace(go.Bar(x=afternoon_2019.index, y=afternoon_2019['Guest_Count'], name='Afternoon 2019', opacity=0.6))
+        day_part_month_by_month_2019.add_trace(go.Bar(x=dinner_2019.index, y=dinner_2019['Guest_Count'], name='Dinner 2019', opacity=0.6))
+
+        #  
+        day_part_month_by_month_2022 = go.Figure()
+        day_part_month_by_month_2022.add_trace(go.Bar(x=breakfast_2022.index, y=breakfast_2022['Guest_Count'], name='Breakfast 2022', opacity=0.6))
+        day_part_month_by_month_2022.add_trace(go.Bar(x=lunch_2022.index, y=lunch_2022['Guest_Count'], name='Lunch 2022', opacity=0.6))
+        day_part_month_by_month_2022.add_trace(go.Bar(x=afternoon_2022.index, y=afternoon_2022['Guest_Count'], name='Afternoon 2022', opacity=0.6))
+        day_part_month_by_month_2022.add_trace(go.Bar(x=dinner_2022.index, y=dinner_2022['Guest_Count'], name='Dinner 2022', opacity=0.6))
+        # 
+
+        # get differences 
+        diff_break = breakfast_2022['Guest_Count'] - breakfast_2019['Guest_Count']
+        diff_break = diff_break.fillna(0)
+        diff_lunch = lunch_2022['Guest_Count'] - lunch_2019['Guest_Count']
+        diff_lunch = diff_lunch.fillna(0)
+        diff_after = afternoon_2022['Guest_Count'] - afternoon_2019['Guest_Count']
+        diff_after = diff_after.fillna(0)
+        diff_dinner = dinner_2022['Guest_Count'] - dinner_2019['Guest_Count']
+        diff_dinner = diff_dinner.fillna(0)
+        # as percentage
+        diff_break = diff_break/breakfast_2019['Guest_Count'] * 100
+        diff_lunch = diff_lunch/lunch_2019['Guest_Count'] * 100
+        diff_after = diff_after/afternoon_2019['Guest_Count'] * 100
+        diff_dinner = diff_dinner/dinner_2019['Guest_Count'] * 100
+        
         # -----------------
         # SHOW ALL GRAPHS - file 1
         with st.expander(f'{month} - {restaurant} - 2019'):
@@ -341,6 +415,7 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
             c1.plotly_chart(day_part_covers_fig_2019)
             c2.plotly_chart(week_average_2019_f)
             c2.plotly_chart(SHP_2019_month)
+            st.plotly_chart(day_part_month_by_month_2019, use_container_width=True) # ok
 
         # SHOW ALL GRAPHS - file 2
         with st.expander(f'{month} - {restaurant} - 2022'):
@@ -349,6 +424,8 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
             c1.plotly_chart(day_part_covers_fig_2022)
             c2.plotly_chart(week_average_2022_f)
             c2.plotly_chart(SHP_2022_month)
+            st.plotly_chart(day_part_month_by_month_2022, use_container_width=True) # ok
+
 
         # PLOT ALL GRAPHS - difference between files
         with st.expander(f'{month} - {restaurant} - 2019 vs 2022'):
@@ -361,6 +438,8 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
             c2.plotly_chart(fig_day_part_)
             # row 3
             st.plotly_chart(fig_2019_2022, use_container_width=True)
+            st.plotly_chart(diff_months_fig, use_container_width=True) # ok
+
 
     # ----------------- #
 
