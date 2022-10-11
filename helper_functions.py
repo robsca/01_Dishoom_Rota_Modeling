@@ -495,3 +495,27 @@ def plot_day_part_covers(data, title, show=True):
     if show:
         st.plotly_chart(day_part_covers_fig)
     return day_part_covers_fig
+
+
+def get_month_totals(df):
+    '''This function takes as input: covers timeries dataframe
+                    returns a dataframe with month and totals'''
+    df = add_month_and_week_number(df)
+    df = df.groupby('Month').sum(['Guest_Count'])
+    # sort by month
+    df = df.sort_values(by='Month')
+    # map index to month name starting from January - 1
+    df.index = df.index.map({1: 'January', 2: 'February', 3: 'March', 4: 'April', 5: 'May', 6: 'June', 7: 'July', 8: 'August', 9: 'September', 10: 'October', 11: 'November', 12: 'December'})
+    return df
+
+def day_part_month_totals(df, day_part):
+    '''This function takes as input: covers timeries dataframe
+                    returns a dataframe with month and totals'''
+    df = add_month_and_week_number(df) # add month and week number 
+    df = df[df['Part_of_day'] == day_part] # filter out day_part
+    df = df.groupby('Month').sum(['Guest_Count']) # group by month and sum
+    # sort by month
+    df = df.sort_values(by='Month')
+    # change index to month name
+    df.index = df.index.map({1: 'January', 2: 'February', 3: 'March', 4: 'April', 5: 'May', 6: 'June', 7: 'July', 8: 'August', 9: 'September', 10: 'October', 11: 'November', 12: 'December'})
+    return df
