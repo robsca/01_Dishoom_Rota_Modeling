@@ -1,3 +1,11 @@
+'''
+author: Roberto Scalas
+date: 2022-09-23
+---
+
+To start the dashboard, run the following command:
+    $ streamlit run Dashboard_2.py
+'''
 import streamlit as st
 st.set_page_config(layout='wide',initial_sidebar_state='collapsed')
 

@@ -1,3 +1,12 @@
+'''
+author: Roberto Scalas
+date: 2022-09-23
+---
+---
+To start the dashboard, run the following command:
+    $ streamlit run dashboard_5.py
+'''
+
 from helper_functions import *
 import hydralit_components as hc
 import streamlit as st
@@ -10,50 +19,6 @@ import plotly.graph_objects as go
 import plotly.express as px
 
 
-with st.sidebar.expander('Import data'):
-    uploaded_file_1 = st.file_uploader("2019")
-    uploaded_file_2 = st.file_uploader("2022")
-
-def get_SPH(df1,df2):
-    # This function returns the SPH for the 2019 and 2022 dataframes in every daypart
-    #-----------------
-    # take off guest_count 0
-    df1 = df1[df1['Guest_Count'] != 0]
-    df2 = df2[df2['Guest_Count'] != 0]
-    # take off guest_count > 25
-    df1 = df1[df1['Guest_Count'] <= 25]
-    df2 = df2[df2['Guest_Count'] <= 25]
-    
-    # create a new columns calls Spent Per Head
-    df1['Spent_per_head'] = df1['Net_Sales']/df1['Guest_Count']
-    df2['Spent_per_head'] = df2['Net_Sales']/df2['Guest_Count']
-    
-    # get unique restaurants
-    restaurants = df1['Store_Name'].unique()
-    SPH_list_2019 = []
-    SPH_list_2022 = []
-    for restaurant in restaurants:
-        # filter by restaurant
-        df1_restaurant = df1[df1['Store_Name'] == restaurant]
-        df2_restaurant = df2[df2['Store_Name'] == restaurant]
-        # get unique day part
-        day_parts = df1[df1['Store_Name'] == restaurant]['Day_Part_Name'].unique()
-        for day_part in day_parts:
-            # filter by day part
-            df1_day_part = df1_restaurant[df1_restaurant['Day_Part_Name'] == day_part]
-            df2_day_part = df2_restaurant[df2_restaurant['Day_Part_Name'] == day_part]
-            # make an average of the spent per head columns
-            SPH = df1_day_part['Spent_per_head'].mean()
-            SPH_list_2019.append([restaurant, SPH, day_part])
-            SPH = df2_day_part['Spent_per_head'].mean()
-            SPH_list_2022.append([restaurant, SPH, day_part])
-
-    # transform the list into a dataframe
-    SPH_2019 = pd.DataFrame(SPH_list_2019, columns=['Store_Name', 'Spent_per_head', 'Day_Part_Name'])
-    SPH_2022 = pd.DataFrame(SPH_list_2022, columns=['Store_Name', 'Spent_per_head',  'Day_Part_Name'])
-    #st.write(SPH_2019)
-    #st.write(SPH_2022)
-    return SPH_2019, SPH_2022
 def menu():
     # Images
     markd = '''
@@ -66,6 +31,7 @@ def menu():
         {'id':'heatmap','label':"Heatmap"},
         {'id':'month','label':"Month Analysis"},
         {'id':'week','label':"Week Analysis (to implement)"},
+        {'id':'ML','label':"Machine Learning (to implement)"},
     ]
     # Specify the theme
     over_theme = {'menu_background': '#ebd2b9',
@@ -81,44 +47,31 @@ def menu():
     )
     return menu_id
 
+with st.sidebar.expander('Import data'):
+    uploaded_file_1 = st.file_uploader("2019")
+    uploaded_file_2 = st.file_uploader("2022")
+
 if uploaded_file_1 is not None and uploaded_file_2 is not None:
     choosen = menu()
+
+
+
     if choosen == 'heatmap':
-
-        # 1. Open the csv files
-        df1 = pd.read_csv(uploaded_file_1)
-        df2 = pd.read_csv(uploaded_file_2)
-
         # 2. try opening the csv file
         try:
             SPH_2019 = pd.read_csv('SPH_2019.csv')
             SPH_2022 = pd.read_csv('SPH_2022.csv')
         except:
+            # 1. Open the csv files
+            df1 = pd.read_csv(uploaded_file_1)
+            df2 = pd.read_csv(uploaded_file_2)
+            # 2. Get the SPH
             SPH_2019, SPH_2022 = get_SPH(df1,df2)
+            # 3. Save the SPH
             SPH_2019.to_csv('SPH_2019.csv', index=False)
             SPH_2022.to_csv('SPH_2022.csv', index=False)
 
-        # 3. take off day part late night
-        SPH_2019 = SPH_2019[SPH_2019['Day_Part_Name'] != 'Late Night']
-        SPH_2022 = SPH_2022[SPH_2022['Day_Part_Name'] != 'Late Night']
-
-        # 4. Plot Data - SPH
-        fig_2019 = go.Figure()
-        for restaurant in SPH_2019['Store_Name'].unique():
-            fig_2019.add_trace(go.Bar
-                            (x=SPH_2019[SPH_2019['Store_Name'] == restaurant]['Day_Part_Name'],
-                            y=SPH_2019[SPH_2019['Store_Name'] == restaurant]['Spent_per_head'],
-                            name=restaurant))
-        fig_2019.update_layout(title='SPH 2019')
-        #---
-        fig_2022 = go.Figure()
-        for restaurant in SPH_2022['Store_Name'].unique():
-            fig_2022.add_trace(go.Bar
-                            (x=SPH_2022[SPH_2022['Store_Name'] == restaurant]['Day_Part_Name'],
-                            y=SPH_2022[SPH_2022['Store_Name'] == restaurant]['Spent_per_head'],
-                            name=restaurant))
-        fig_2022.update_layout(title='SPH 2022')
-
+        
         # 5. Precisly fill invalid data -> 
         # If guest count > 25 fill the values with the totals sales divided by SPH in that day part
         try:
@@ -149,19 +102,16 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
             covers2019 = create_timeries_covers(df1)
             covers2022 = create_timeries_covers(df2)
             # save as csv
-            covers2019.to_csv('covers_2019.csv', index=False)
-            covers2022.to_csv('covers_2022.csv', index=False)
+            covers2019.to_csv('covers_2019.csv', index=True)
+            covers2022.to_csv('covers_2022.csv', index=True)
         
         
         # 9. Select restarants
-        # Create a list of restaurants
-        restaurants = covers2019['Store_Name'].unique()
-        restaurants = np.append(restaurants, 'All Restaurants')
-
+        restaurants = np.append(covers2019['Store_Name'].unique(), 'All Restaurants') # create a list of restaurants
         restaurant = st.sidebar.selectbox('Select restaurant', restaurants)
         
         # 10. Filter the data
-        if restaurant is not 'All Restaurant':
+        if restaurant != 'All Restaurant':
             # filter out not choosen restaurants
             covers2019 = covers2019[covers2019['Store_Name'] == restaurant]
             covers2022 = covers2022[covers2022['Store_Name'] == restaurant]
@@ -174,9 +124,9 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
         # CREATE HEATMAP 2019 and 2022
         # Filter out hours < 9 and > 22
         covers2019 = covers2019[covers2019['Hour'] >= 9]
-        covers2019 = covers2019[covers2019['Hour'] <= 22]
+        covers2019 = covers2019[covers2019['Hour'] <= 23]
         covers2022 = covers2022[covers2022['Hour'] >= 9]
-        covers2022 = covers2022[covers2022['Hour'] <= 22]
+        covers2022 = covers2022[covers2022['Hour'] <= 23]
         
         # group by day making average of the guests and employees
         days_of_week = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -330,7 +280,6 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
         
         #-------------------
         # 2nd Graph - SPENT PER HEAD 2022
-            # 1. Get Data
         SPH_fig_2022 = px.bar(sph_2022, x='Day_Part_Name', y='Spent_per_head', title='SPH 2022')
         # -----------------
         # 3rd Graph - WEEKLY COVERS 2019
@@ -349,7 +298,7 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
         data_day_part_day = data_guest_heatmap_2022
         # transform columns in strings
         data_day_part_day.columns = data_day_part_day.columns.astype(str)
-        # group 9-12, 12-15, 15-18, 18-21, 21-24
+        # group 9-12, 12-15, 15-18, 18-24
         data_day_part_day['Breakfast'] = data_day_part_day['9'] + data_day_part_day['10'] + data_day_part_day['11']
         data_day_part_day['Lunch'] = data_day_part_day['12'] + data_day_part_day['13'] + data_day_part_day['14'] + data_day_part_day['15']
         data_day_part_day['Afternoon'] = data_day_part_day['16'] + data_day_part_day['17'] + data_day_part_day['18']
@@ -556,7 +505,7 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
         restaurant = st.sidebar.selectbox('Select restaurant', restaurants)
         
         # 10. Filter the data
-        if restaurant is not 'All Restaurant':
+        if restaurant != 'All Restaurant':
             # filter out not choosen restaurants
             covers2019 = covers2019[covers2019['Store_Name'] == restaurant]
             covers2022 = covers2022[covers2022['Store_Name'] == restaurant]
@@ -655,7 +604,7 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
 
        # restaurant should already be in memory
         # 10. Filter the data
-        if restaurant is not 'All Restaurant':
+        if restaurant != 'All Restaurant':
             # filter out not choosen restaurants
             covers2019 = covers2019[covers2019['Store_Name'] == restaurant]
             covers2022 = covers2022[covers2022['Store_Name'] == restaurant]
@@ -1354,6 +1303,8 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
         # add 2022
         diff_sph_fig.add_trace(go.Bar(x=SPH_DIFF['Day_Part_Name'], y=sph_2022['Spent_per_head'], name='2022'))
         diff_sph_fig.update_layout(title='Difference SPH 2019 vs 2022')
+        # ----------------- #
+
 
         # PLOT ALL GRAPHS
         with st.expander(f'Week {week_number} - {restaurant} - 2019 vs 2022'):
@@ -1367,10 +1318,61 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
             # row 3
             st.plotly_chart(fig_2019_2022, use_container_width=True)
 
+    # ----------------- #
 
+    elif choosen == 'ML':
 
+        st.title('Machine Learning')
+        st.write('This section is under construction')
 
+        data_2019 = pd.read_csv('covers_2019.csv')
+        data  = data_2019.copy()
+        # sort data
+        data = data.sort_values(by=['Date'])
+        # only 1 restaurant
+        restaurant = data['Store_Name'].unique()[0]
+        data = data[data['Store_Name'] == restaurant]
+        # transform date in datetime
+        data['Date'] = pd.to_datetime(data['Date'])
+        # keep only date
+        data['Date'] = data['Date'].dt.date
+        # to datetime
+        data['Date'] = pd.to_datetime(data['Date'])
+        # add month column
+        data['Month'] = data['Date'].dt.month
+        # keep only month <6
+        data = data[data['Month'] < 6]
         
-        
+
+        # group by day
+        data = data.groupby(['Date']).sum()
+        data = data['Guest_Count']
+
+        # Connect to MODEL
+        import numpy as np
+        import torch
+        # transform data
+        # to tensor
+        data = torch.FloatTensor(data)
+        print(f'Original dimensions : {data.shape}')
+        train_scaled = data.view(-1)
+        print(f'Correct dimensions : {data.shape}')
+
+        # import model
+        from torch_model_LSTM import predict
+        look_back = 31
+        predictions = predict(data, look_back)
+        # from numpy to list
+        predictions = predictions.tolist()
+        # from tensor to numpy
+        st.write(type(predictions))
+        predictions = [prediction[0] for prediction in predictions]
+        # plot
+        x = [x for x in range(len(predictions))]
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=x, y=predictions, name='Predictions'))
+        fig.update_layout(title='Predictions')
+        st.plotly_chart(fig, use_container_width=True)
 
 
+    # ----------------- #

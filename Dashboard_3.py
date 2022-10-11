@@ -14,6 +14,9 @@ The csv file contains the following columns:
 
 A line chart is generated showing the Guest_Count and Employee_Count for the selected store.
 A heatmap is also generated to show the ratio of Guests vs Employees per hour.
+---
+To start the dashboard, run the following command:
+    $ streamlit run Dashboard_3.py
 '''
 from helper_functions import *
 

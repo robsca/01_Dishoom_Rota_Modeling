@@ -4,22 +4,37 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-df = pd.read_csv('covers_2019.csv')
+df = pd.read_csv('Aloha_Sales_Data_Export_2019.csv')
 
 restaurants = df['Store_Name'].unique()
 
 restaurant = restaurants[0]
 # filter out other restaurants
 df = df[df['Store_Name'] == restaurant]
-df = df[['Guest_Count']]
+
+
+# sort by date
+df = df.sort_values(by=['Date'])
+# group by day
+df = df.groupby('Date').sum()
+# get day timeseries
+df = df['Guest_Count']
+# index as date
+df.index = pd.to_datetime(df.index)
+import numpy as np
+# transform data
+df = np.array(df)
+df = df.reshape(-1, 1)
 
 
 def train_test(df, test_periods):
-    train = df[:-test_periods].values
-    test = df[-test_periods:].values
+    train = df[:-test_periods]
+    test = df[-test_periods:]
     return train, test
 
-look_future = 13
+look_future = 7 # days
+look_back = 31 # days
+
 train, test = train_test(df, look_future)
 
 # scaling
@@ -53,7 +68,6 @@ def get_x_y_pairs(train_scaled, train_periods, prediction_periods):
     
     return x_train, y_train
 
-look_back = 32 #-- number of quarters for input
 prediction_periods = look_future
 x_train, y_train = get_x_y_pairs(train_scaled, look_back, prediction_periods)
 print(x_train.shape)
@@ -94,22 +108,30 @@ class LSTM(nn.Module):
         
         return predictions[-1], self.hidden
 
-# try to open model
-try:
-    model = torch.load('model.pt')
-    print('Model loaded')
-    model_load = True
-except:
-    model = LSTM(input_size=1, hidden_size=50, output_size=look_future)
-    model_load = False
+# create Functions to save and load model
+def save_checkpoint(checkpoint, path = 'checkpoint.pth.tar'):
+    print('Saving Checkpoint')
+    torch.save(checkpoint, path)
+    
+def load_checkpoint(checkpoint):
+    print('Loading Checkpoint')
+    model.load_state_dict(checkpoint['parameters'])
+    optimizer.load_state_dict(checkpoint['optimizer'])
+
+
+model = LSTM(input_size=1, hidden_size=50, output_size=look_future)
 criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-if not model_load:
+def training():
     epochs = 10
     model.train()
     print('Started Training')
     # open model if model is already trained
+    #7. training
+    load = True
+    if load:
+        load_checkpoint(torch.load('checkpoint.pth.tar'))
 
     for epoch in range(epochs+1):
         for x,y in zip(x_train, y_train):
@@ -120,18 +142,26 @@ if not model_load:
             optimizer.step()
             
         print(f'epoch: {epoch:4} loss:{loss.item():10.8f}')
-    # save model parameters
-    torch.save(model, 'model.pt')
-    print('Model saved')
+        if epoch+1 == epochs:
+            checkpoint = {'parameters' : model.state_dict(), 'optimizer' : optimizer.state_dict()}
+            save_checkpoint(checkpoint)
+            print('Saving Model - Reached Checkpoint')
     print('Finished Training')
 
-import numpy as np
-model.eval()
-with torch.no_grad():
-    predictions, _ = model(train_scaled[-look_back:], None)
-#-- Apply inverse transform to undo scaling
-predictions = scaler.inverse_transform(np.array(predictions.reshape(-1,1)))
+def predict(data_already_scaled, look_back, show = False):
+    data = data_already_scaled[-look_back:]
+    import numpy as np
+    model.eval()
+    with torch.no_grad():
+        predictions, _ = model(data, None)
+    #-- Apply inverse transform to undo scaling
+    predictions = scaler.inverse_transform(np.array(predictions.reshape(-1,1)))
+    if show:
+        import matplotlib.pyplot as plt
+        plt.plot(predictions)
+        plt.show()
+    return predictions
 
-import matplotlib.pyplot as plt
-plt.plot(predictions)
-plt.show()
+data = train_scaled
+look_back = 31
+preds = predict(data, look_back)

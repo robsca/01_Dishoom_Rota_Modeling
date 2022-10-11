@@ -39,7 +39,7 @@ def create_timeries_covers(df):
         # filter data for each restaurant
         df_restaurant = df[df['Store_Name'] == restaurant]
         # 4. Group by date
-        df_restaurant = df_restaurant.groupby('Date').sum()
+        df_restaurant = df_restaurant.groupby('Date').sum(numeric_only=True) # if error take out numeric_only=True or try adding columns
         # Add Restaurant name
         df_restaurant['Store_Name'] = restaurant
         # create a column containing only the hour
@@ -328,3 +328,48 @@ def create_final_timeseries(uploaded_file_1,uploaded_file_2):
     data_employee['Time_of_day'] = data_employee['Hour'].apply(lambda x: get_time_of_day(x))
     # ----------------- #
     return data_employee
+
+def get_SPH(df1,df2):
+    import pandas as pd
+    # This function returns the SPH for the 2019 and 2022 dataframes in every daypart
+    #-----------------
+    # take off guest_count 0
+    df1 = df1[df1['Guest_Count'] != 0]
+    df2 = df2[df2['Guest_Count'] != 0]
+    # take off guest_count > 25
+    df1 = df1[df1['Guest_Count'] <= 25]
+    df2 = df2[df2['Guest_Count'] <= 25]
+    
+    # create a new columns calls Spent Per Head
+    df1['Spent_per_head'] = df1['Net_Sales']/df1['Guest_Count']
+    df2['Spent_per_head'] = df2['Net_Sales']/df2['Guest_Count']
+    
+    # get unique restaurants
+    restaurants = df1['Store_Name'].unique()
+    SPH_list_2019 = []
+    SPH_list_2022 = []
+    for restaurant in restaurants:
+        # filter by restaurant
+        df1_restaurant = df1[df1['Store_Name'] == restaurant]
+        df2_restaurant = df2[df2['Store_Name'] == restaurant]
+        # get unique day part
+        day_parts = df1[df1['Store_Name'] == restaurant]['Day_Part_Name'].unique()
+        for day_part in day_parts:
+            # filter by day part
+            df1_day_part = df1_restaurant[df1_restaurant['Day_Part_Name'] == day_part]
+            df2_day_part = df2_restaurant[df2_restaurant['Day_Part_Name'] == day_part]
+            # make an average of the spent per head columns
+            SPH = df1_day_part['Spent_per_head'].mean()
+            SPH_list_2019.append([restaurant, SPH, day_part])
+            SPH = df2_day_part['Spent_per_head'].mean()
+            SPH_list_2022.append([restaurant, SPH, day_part])
+
+    # transform the list into a dataframe
+    SPH_2019 = pd.DataFrame(SPH_list_2019, columns=['Store_Name', 'Spent_per_head', 'Day_Part_Name'])
+    SPH_2022 = pd.DataFrame(SPH_list_2022, columns=['Store_Name', 'Spent_per_head',  'Day_Part_Name'])
+    # 3. take off day part late night
+    SPH_2019 = SPH_2019[SPH_2019['Day_Part_Name'] != 'Late Night']
+    SPH_2022 = SPH_2022[SPH_2022['Day_Part_Name'] != 'Late Night']
+    #st.write(SPH_2019)
+    #st.write(SPH_2022)
+    return SPH_2019, SPH_2022

@@ -1,3 +1,11 @@
+'''
+author: Roberto Scalas
+date: 2022-09-23
+---
+---
+To start the dashboard, run the following command:
+    $ streamlit run Dashboard_4.py
+'''
 import streamlit as st
 import pandas as pd
 import numpy as np
