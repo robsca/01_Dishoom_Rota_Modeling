@@ -28,8 +28,8 @@ def create_timeries_covers(df):
     df['Date'] = pd.to_datetime(df['Date'])
     
     # 2. Get unique restaurants
-    # apply a lambda function to modify store name
-    df['Store_Name'] = df.apply(lambda x: x['Store_Name'].split('-')[1], axis=1)
+    # if name contain '-'replace it with only the second part of the name
+    df['Store_Name'] = df.apply(lambda x: x['Store_Name'].split('-')[1] if '-' in x['Store_Name'] else x['Store_Name'], axis=1)
     restaurants = df['Store_Name'].unique()
     # modify the restaurants name to match the employees data
     # divide at - and take the first part
@@ -329,6 +329,14 @@ def create_final_timeseries(uploaded_file_1,uploaded_file_2):
     # ----------------- #
     return data_employee
 
+def add_month_and_week_number(df):
+    import pandas as pd
+    df['Date_'] = pd.to_datetime(df['Date'])
+    df['Month'] = df['Date_'].dt.month
+    df['Week_Number'] = df['Date_'].apply(lambda x: x.week)
+    return df
+
+
 def get_SPH(df1,df2):
     import pandas as pd
     # This function returns the SPH for the 2019 and 2022 dataframes in every daypart
@@ -373,3 +381,117 @@ def get_SPH(df1,df2):
     #st.write(SPH_2019)
     #st.write(SPH_2022)
     return SPH_2019, SPH_2022
+
+def create_heatmap_data_weekly(data):
+    import pandas as pd
+    # group by day making average of the guests count
+    days_of_week = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    frame = []
+    for day in days_of_week:
+        # 2019
+        # filter by day
+        data_guest_day = data[data['Day_of_week'] == day]
+        data_guest_day = data_guest_day.groupby(data['Hour']).mean()
+        # drop Hour columns
+        data_guest_day = data_guest_day.drop(columns=['Hour'])
+        # rename guest count
+        data_guest_day = data_guest_day.rename(columns={'Guest_Count': day})
+        transposed_day = data_guest_day.T
+        # add to list
+        frame.append(transposed_day)
+    data_guest_heatmap = pd.concat(frame)
+    return data_guest_heatmap
+
+def plot_heatmap(data, title, show = True):
+    import plotly.express as px
+    import streamlit as st
+    z = data
+    # round the values
+    z = z.round(0)
+    z = z.values.tolist()
+    fig = px.imshow(z, text_auto=True, title=title)
+    fig.update_xaxes(
+        ticktext=data.columns,
+        tickvals=list(range(len(data.columns))),
+        tickangle=45,
+        tickfont=dict(
+            family="Rockwell",
+            size=14,
+        )
+    )
+    fig.update_yaxes(
+        ticktext=[day[:3] for day in data.index],
+        tickvals=list(range(len(data.index))),
+        tickangle=0,
+        tickfont=dict(
+            family="Rockwell",
+            size=14,
+        )
+    )
+    # modify size
+    fig.update_layout(
+        autosize=True,
+        #width=1400,
+        #height=600,
+    )
+    if show:
+        st.plotly_chart(fig)
+    return fig
+
+def plot_SPH(data, restaurant, title = '', show = True):
+    import plotly.express as px
+    import pandas as pd
+    import streamlit as st
+    # 1. Modify store names with the second element after the dash
+    data['Store_Name'] = data.apply(lambda x: x['Store_Name'].split('-')[1] if '-' in x['Store_Name'] else x['Store_Name'], axis=1)
+    if restaurant != 'All Restaurant':
+        # filter the data
+        data = data[data['Store_Name'] == restaurant]
+        SPH_fig = px.bar(data, x='Day_Part_Name', y='Spent_per_head', title=title)
+
+    else:
+        # group by day part
+        data = data.groupby('Day_Part_Name').mean()
+        SPH_fig = px.bar(data, x=data.index, y='Spent_per_head', title=title)
+    if show:
+        st.plotly_chart(SPH_fig)
+    return SPH_fig
+
+def plot_week_totals_typical_week(data, title, show=True):
+    import plotly.graph_objects as go
+    import pandas as pd
+    import streamlit as st
+    # 3rd Graph - WEEKLY COVERS 2019
+    # 1. Get Data
+    grouped_data = data.T  # transposing to have the days as columns
+    totals = grouped_data.sum(axis=0)   # summing the rows
+    totals = pd.DataFrame(totals) # converting to dataframe
+    totals.columns = ['Total']        # renaming the column
+    # 2. Create graph  
+    weekly_covers_fig = go.Figure()
+    weekly_covers_fig.add_trace(go.Scatter(x=totals.index, y=totals['Total'], name=f'{title}', fill = 'tozeroy'))
+    weekly_covers_fig.update_layout(title=f'{title}')
+    if show:
+        st.plotly_chart(weekly_covers_fig)
+    return weekly_covers_fig, totals
+
+def plot_day_part_covers(data, title, show=True):
+    import plotly.graph_objects as go
+    import pandas as pd
+    import streamlit as st
+    data_day_part_day = data
+    # transform columns in strings
+    data_day_part_day.columns = data_day_part_day.columns.astype(str)
+    # group 9-12, 12-15, 15-18, 18-21, 21-24
+    data_day_part_day['Breakfast'] = data_day_part_day['9'] + data_day_part_day['10'] + data_day_part_day['11']
+    data_day_part_day['Lunch'] = data_day_part_day['12'] + data_day_part_day['13'] + data_day_part_day['14'] + data_day_part_day['15']
+    data_day_part_day['Afternoon'] = data_day_part_day['16'] + data_day_part_day['17'] + data_day_part_day['18']
+    data_day_part_day['Dinner'] = data_day_part_day['19'] + data_day_part_day['20'] + data_day_part_day['21'] + data_day_part_day['22']
+        # 2. Create graph
+    day_part_covers_fig = go.Figure()
+    for day_part in ['Breakfast', 'Lunch', 'Afternoon', 'Dinner']:
+        day_part_covers_fig.add_trace(go.Bar(x=data_day_part_day.index, y=data_day_part_day[day_part], name=f'{day_part}'))
+    day_part_covers_fig.update_layout(title=f"{title}", xaxis_title="Day", yaxis_title="Covers")
+    if show:
+        st.plotly_chart(day_part_covers_fig)
+    return day_part_covers_fig
