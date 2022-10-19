@@ -51,6 +51,12 @@ with st.sidebar.expander('Import data'):
     uploaded_file_2 = st.file_uploader("2022")
 
 if uploaded_file_1 is not None and uploaded_file_2 is not None:
+    # save data as csv
+    df_2019_ = pd.read_csv(uploaded_file_1)
+    df_2022_ = pd.read_csv(uploaded_file_2)
+    df_2019_.to_csv('Aloha_Sales_Data_Export_2019.csv', index = True)
+    df_2022_.to_csv('Aloha_Sales_Data_Export_2022.csv', index = True)
+    
     choosen = menu()
 
     # 1. SPHs
@@ -605,6 +611,7 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
         # group by day
         data = data.groupby(['Date']).sum()
         data = data['Guest_Count']
+        data_ = data.copy()
 
         # Connect to MODEL
         import numpy as np
@@ -620,15 +627,26 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
         from torch_model_LSTM import predict
         look_back = 31
         predictions = predict(data, look_back)
+        
+        # get the values in a list
+        st.write(data_)
+        # rescale history
+
+        st.write(predictions)
         # from numpy to list
         predictions = predictions.tolist()
         # from tensor to numpy
         st.write(type(predictions))
-        predictions = [prediction[0] for prediction in predictions]
+
+        '''Rescale model'''
+        scalar = 500
+        predictions = [prediction[0] + scalar for prediction in predictions]
         # plot
-        x = [x for x in range(len(predictions))]
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=x, y=predictions, name='Predictions'))
+
+        # add trace with historical data
+        fig.add_trace(go.Scatter(x=[i for i in range(len(data_))], y=data_, name='Historical Data'))
+        fig.add_trace(go.Scatter(x=[i+len(data_) for i in range(len(predictions))], y=predictions, name='Predictions'))
         fig.update_layout(title='Predictions')
         st.plotly_chart(fig, use_container_width=True)
 

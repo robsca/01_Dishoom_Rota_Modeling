@@ -15,6 +15,8 @@ pip3 install torch
 pip3 install scikit-learn
 pip3 install hydralit_components
 pip3 install matplotlib
+pip3 install transformers
+pip3 install xlrd
 ```
 ---
 

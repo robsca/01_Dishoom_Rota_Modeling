@@ -7,11 +7,10 @@ import torch.optim as optim
 df = pd.read_csv('Aloha_Sales_Data_Export_2019.csv')
 
 restaurants = df['Store_Name'].unique()
-
 restaurant = restaurants[0]
+
 # filter out other restaurants
 df = df[df['Store_Name'] == restaurant]
-
 
 # sort by date
 df = df.sort_values(by=['Date'])
@@ -123,13 +122,12 @@ model = LSTM(input_size=1, hidden_size=50, output_size=look_future)
 criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-def training():
-    epochs = 10
+def training(epochs = 10):
     model.train()
     print('Started Training')
     # open model if model is already trained
     #7. training
-    load = True
+    load = False
     if load:
         load_checkpoint(torch.load('checkpoint.pth.tar'))
 
@@ -162,6 +160,10 @@ def predict(data_already_scaled, look_back, show = False):
         plt.show()
     return predictions
 
+'''
 data = train_scaled
 look_back = 31
 preds = predict(data, look_back)
+'''
+
+training(epochs = 1000)
