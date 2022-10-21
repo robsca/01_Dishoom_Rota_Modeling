@@ -152,3 +152,37 @@ def solving_(constraint, open_time, min_hours, max_hours):
     shifts = [[shift[0]+open_time, shift[1]+open_time] for shift in shifts]
     rota = process_rota(shifts)
     return rota, shifts
+
+import streamlit as st
+st.set_page_config(layout="wide")
+
+import pandas as pd
+import plotly.graph_objects as go
+
+
+def main():
+    # get the data from the user
+    with st.sidebar:
+        constraint = [int(i) for i in st.text_input('Enter the constraint array').split(',')]
+        open_time = int(st.number_input('Enter the open time', min_value=0, max_value=23))
+        min_hours = int(st.number_input('Enter the min hours', min_value=1, max_value=23))
+        max_hours = int(st.number_input('Enter the max hours', min_value=1, max_value=23))
+
+    # solve the problem
+    rota, shifts = solving_(constraint, open_time, min_hours, max_hours)
+    shifts = pd.DataFrame(shifts, columns=['start', 'end'])
+
+    # create graph
+    fig = go.Figure()
+    fig.add_trace(go.Bar(x=[i+open_time for i in range(len(rota))], y=rota, name='Generated Rota'))
+    # add contrsaint
+    fig.add_trace(go.Bar(x=[i+open_time for i in range(len(constraint))], y=constraint, name='Employees Needed'))
+    
+    
+    st.plotly_chart(fig, use_container_width=True)
+    # plot shifts as heatmap
+    st.write(shifts)
+    # transform in dataframe
+    
+if __name__ == '__main__':
+    main()

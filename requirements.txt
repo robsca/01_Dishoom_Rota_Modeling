@@ -1,0 +1,12 @@
+streamlit 
+pandas
+numpy
+plotly
+openpyxl
+hydralit_components
+torch
+scikit-learn
+hydralit_components
+matplotlib
+transformers
+xlrd
