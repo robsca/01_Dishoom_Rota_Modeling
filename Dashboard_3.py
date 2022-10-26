@@ -24,16 +24,16 @@ def one():
     import streamlit as st
     import pandas as pd
 
-    # title
+    # 1. Set Title
     st.sidebar.title('Rota Modeling')
-
+    # 2. Import data for processing
     with st.sidebar.expander('Import data'):
         uploaded_file_1 = st.file_uploader("Select Employees Data", key='1')
         uploaded_file_2 = st.file_uploader("Select Covers Data", key='2')
 
     if uploaded_file_1 is not None and uploaded_file_2 is not None:
         data_employee = create_final_timeseries(uploaded_file_1,uploaded_file_2)
-
+        # 3. Create file for download
         with st.expander('guestsVSlabour - Data'):
             st.write(data_employee)
             @st.cache # cache the function
@@ -55,11 +55,11 @@ def one():
                 mime='text/csv',
             )
 
+        # 4. Select restauratn
         # create a list of restaurants
         restaurants = data_employee['Store_Name'].unique()
         # add all restaurants to the list
         import numpy as np
-        
         restaurants = np.append(restaurants, 'All Restaurants')
 
         selected = st.sidebar.selectbox('Select a restaurant', restaurants)
@@ -80,7 +80,8 @@ def one():
             st.subheader(f'Employees Data - {selected}')
             #st.write(data_employee)
         # ----------------- #
-        # plot
+        
+        # 5. Plot totals for the selected restaurant
         import plotly.graph_objects as go
         fig_timeries = go.Figure()
         fig_timeries.add_trace(go.Scatter(x=data_employee.index, y=data_employee['Guest_Count'], name='Guest Count', fill='tozeroy'))
@@ -97,10 +98,10 @@ def one():
         )
 
         # ----------------- #
-        # CREATE HEATMAP
+        # 6. Create Heatmap 
+        
         # Filter out hours < 9 and > 23
         data_employee = data_employee[(data_employee.index.hour >= 9) & (data_employee.index.hour < 23)]
-        
         # group by day making average of the guests and employees
         days_of_week = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
         frame = []
@@ -119,14 +120,16 @@ def one():
             transposed_day = data_employee_day.T
             # add to list
             frame.append(transposed_day)
-
+        # concat all days
         data_employees_heat = pd.concat(frame)
         with st.expander('Heatmap_data'):
             st.write(data_employees_heat)
         
-        st.plotly_chart(fig_timeries, use_container_width=True)
-
+        # 7. Plot heatmap
         from helper_functions import plot_heatmap
         fig = plot_heatmap(data_employees_heat, 'Guests vs Employees', show = False, round=False)
+
+        # 8. Show all graphs
+        st.plotly_chart(fig_timeries, use_container_width=True)
         st.plotly_chart(fig, use_container_width=True)
 
