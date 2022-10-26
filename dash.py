@@ -33,8 +33,3 @@ choosen = menu()
 if choosen == 'heatmap':
     from Dashboard_3 import one
     one()
-    
-elif choosen == 'Comparison':
-    from Dashboard_4 import two
-    two()
-

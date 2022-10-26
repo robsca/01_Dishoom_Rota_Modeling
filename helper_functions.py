@@ -321,9 +321,9 @@ def create_final_timeseries(uploaded_file_1,uploaded_file_2):
         elif x >= 8 and x < 12:
             return 'Breakfast'
         elif x >= 12 and x <= 15:
-            return 'Afternoon'
+            return 'Lunch'
         elif x > 15 and x <= 18:
-            return 'Evening'
+            return 'Afternoon'
         elif x > 18 and x <= 23:
             return 'Dinner'
         else:

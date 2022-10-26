@@ -1,5 +1,8 @@
 # To do list
 ---
-Adjust graph weekly_covers fill = tozeroy - rewrite it as graph object
-4th graph = SPH * Average totals in Day Part
-
+- Pattern spending of each restaurant.
+- SPH tracker - Monthly, Weekly, Day Parts
+    Considering SPH as efficency value for the server performance, to highlights differences in results.
+- How the items are influencing day parts.
+- SPH -> As evaluation of server performance.
+- Server performance
