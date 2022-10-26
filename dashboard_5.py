@@ -4,13 +4,14 @@ date: 2022-09-23
 ---
 ---
 To start the dashboard, run the following command:
-    $ streamlit run dashboard_5.py
+    $ streamlit run Dashboard_5.py
 '''
 
 from helper_functions import *
 
 import streamlit as st
-st.set_page_config(layout='wide',initial_sidebar_state='auto')
+# set icon
+st.set_page_config(page_title='Dishoom', page_icon='https://www.dishoom.com/assets/img/roundel-seva.png', layout='wide', initial_sidebar_state='auto')
 import hydralit_components as hc
 
 import pandas as pd
@@ -286,7 +287,7 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
         # 10. Create Heatmaps
         data_guest_heatmap_2019 = create_heatmap_data_weekly(covers2019)
         data_guest_heatmap_2022 = create_heatmap_data_weekly(covers2022)
-
+        
         heatmap_2019_month = plot_heatmap(data_guest_heatmap_2019, '2019', False)
         heatmap_2022_month = plot_heatmap(data_guest_heatmap_2022, '2022', False)
 
