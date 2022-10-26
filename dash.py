@@ -28,6 +28,7 @@ def menu():
         sticky_mode='sticky',      # jumpy or not-jumpy, but sticky or pinned
     )
     return menu_id
+
 choosen = menu()
 if choosen == 'heatmap':
     from Dashboard_3 import one
