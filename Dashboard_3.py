@@ -126,54 +126,7 @@ def one():
         
         st.plotly_chart(fig_timeries, use_container_width=True)
 
-        # plot heatmap
-        import plotly.express as px
-        fig = px.imshow(data_employees_heat, labels=dict(x="Hour", y="Day of week", color="Guests per employee"))
-        # from red to green
-        
-
-        fig.update_layout(
-            title="Guests per employee",
-            xaxis_title="Hour",
-            yaxis_title="Day of week",
-            legend_title="Legend Title",
-            font=dict(
-                family="Courier New, monospace",
-                color="#7f7f7f"
-            )
-        )
-        #st.plotly_chart(fig, use_container_width=True)
-
-        # plot as go
-        import plotly.graph_objects as go
-        fig = go.Figure(data=go.Heatmap(    
-            z=data_employees_heat.values,
-            x=data_employees_heat.columns,
-            y=data_employees_heat.index[::-1],
-            colorscale='Turbo',
-            # set as min of the whole dataset
-            zmin=data_employees_heat.values.min(),
-            # set as max of the whole df
-            zmax=data_employees_heat.values.max(),
-            colorbar=dict(
-                title="Guests per employee",
-                titleside="right",
-                tickmode="array",
-                tickvals=[data_employees_heat.values.min(), 2.0, data_employees_heat.values.max()],
-                ticktext=["Over-Staffed", "Ideal", "Under-Staffed"],
-                ticks="outside"
-            )
-        ))
-        fig.update_layout(
-            title="Guests per employee",
-            xaxis_title="Hour",
-            yaxis_title="Day of week",
-            legend_title="Legend Title",
-            font=dict(
-                family="Courier New, monospace",
-                color="#7f7f7f"
-            )
-        )
+        from helper_functions import plot_heatmap
+        fig = plot_heatmap(data_employees_heat, 'Guests vs Employees', show = False, round=False)
         st.plotly_chart(fig, use_container_width=True)
 
-#one()

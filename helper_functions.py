@@ -1,4 +1,7 @@
 
+from re import S
+
+
 def file_handler(uploaded_file):
     '''
     This function handles the uploaded file and returns a dataframe
@@ -329,13 +332,49 @@ def create_final_timeseries(uploaded_file_1,uploaded_file_2):
     # ----------------- #
     return data_employee
 
-def add_month_and_week_number(df):
+def add_month_and_week_number_(df):
     import pandas as pd
     df['Date_'] = pd.to_datetime(df['Date'])
     df['Month'] = df['Date_'].dt.month
     df['Week_Number'] = df['Date_'].apply(lambda x: x.week)
     return df
 
+def add_month_and_week_number(df):
+    import pandas as pd
+    import streamlit as st
+    look_up_table = pd.read_csv('CalendarLookupTable.csv')
+    
+    # Filter out useless years
+    look_up_table_2019 = look_up_table[look_up_table['Year'] == 2019]
+    look_up_table_2022 = look_up_table[look_up_table['Year'] == 2022]
+    
+    # merge the two dfs
+    look_up_table = pd.concat([look_up_table_2019,look_up_table_2022],axis=0)
+    
+    # keep only date, month and week number
+    look_up_table = look_up_table[['Date (DDMMYYYY)','Financial Month No','Week Number']]
+    # translate date (DDMMYYYY) to datetime
+    look_up_table['Date (DDMMYYYY)'] = pd.to_datetime(look_up_table['Date (DDMMYYYY)'], dayfirst=True)
+    # change format to dd/mm/yyyy
+    look_up_table['Date (DDMMYYYY)'] = look_up_table['Date (DDMMYYYY)'].dt.strftime('%d-%m-%Y')
+    
+    
+    # modify date columns in df
+    df['Date'] = pd.to_datetime(df['Date'])
+    # change format to dd/mm/yyyy
+    df['Date'] = df['Date'].dt.strftime('%d-%m-%Y')
+    df['Date_'] = pd.to_datetime(df['Date'], dayfirst=True)
+    # as dd/mm/yyyy
+    df['Date_'] = df['Date_'].dt.strftime('%d-%m-%Y')
+    
+    
+    # merge on date
+    df = pd.merge(df, look_up_table, how='left', left_on='Date', right_on='Date (DDMMYYYY)')
+    # change Financial Month No name to Month and Week Number to Week_Number
+    df = df.rename(columns={'Financial Month No':'Month', 'Week Number':'Week_Number'})
+    # drop columns
+    covers_2019 = pd.read_csv('covers_2019.csv')    
+    return df
 
 def get_SPH(df1,df2):
     import pandas as pd
@@ -402,12 +441,15 @@ def create_heatmap_data_weekly(data):
     data_guest_heatmap = pd.concat(frame)
     return data_guest_heatmap
 
-def plot_heatmap(data, title, show = True):
+def plot_heatmap(data, title, show = True, round = True):
     import plotly.express as px
     import streamlit as st
     z = data
     # round the values
-    z = z.round(0)
+    if round == True:
+        z = z.round(0)
+    else:
+        z  = z.round(1)
     z = z.values.tolist()
     fig = px.imshow(z, text_auto=True, title=title)
     fig.update_xaxes(
@@ -495,7 +537,6 @@ def plot_day_part_covers(data, title, show=True):
     if show:
         st.plotly_chart(day_part_covers_fig)
     return day_part_covers_fig
-
 
 def get_month_totals(df):
     '''This function takes as input: covers timeries dataframe

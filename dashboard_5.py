@@ -465,24 +465,40 @@ if uploaded_file_1 is not None and uploaded_file_2 is not None:
 
         df1_open = add_month_and_week_number(df1_open)
         df2_open = add_month_and_week_number(df2_open)
-
+        
         # filter out unnecessary weeks
         df1_open = df1_open[df1_open['Week_Number'] == week_number]
         df2_open = df2_open[df2_open['Week_Number'] == week_number]
 
         restaurant = st.sidebar.selectbox('Select a restaurant', restaurants)
-        
         # filter out unnecessary restaurants
-        if restaurant != 'All':
-            # modify restaurants name
-            df1_open['Store_Name'] = df1_open.apply(lambda x: x['Store_Name'].split('-')[1] if '-' in x['Store_Name'] else x['Store_Name'], axis=1)
-            df2_open['Store_Name'] = df2_open.apply(lambda x: x['Store_Name'].split('-')[1] if '-' in x['Store_Name'] else x['Store_Name'], axis=1)
-            # filter by restaurant
-            df1_open = df1_open[df1_open['Store_Name'] == restaurant]
-            df2_open = df2_open[df2_open['Store_Name'] == restaurant]
-            
+        if restaurant == 'All':
+            pass
+
+        # modify restaurants name
+        df1_open['Store_Name'] = df1_open.apply(lambda x: x['Store_Name'].split('-')[1] if '-' in x['Store_Name'] else x['Store_Name'], axis=1)
+        df2_open['Store_Name'] = df2_open.apply(lambda x: x['Store_Name'].split('-')[1] if '-' in x['Store_Name'] else x['Store_Name'], axis=1)
+        # filter by restaurant
+        df1_open = df1_open[df1_open['Store_Name'] == restaurant]
+        df2_open = df2_open[df2_open['Store_Name'] == restaurant]
+        # translate date to datetime
+        df1_open['Date__'] = pd.to_datetime(df1_open['Date'])
+        df2_open['Date__'] = pd.to_datetime(df2_open['Date'])
+        # add name of the day
+        df1_open['Day_Name'] = df1_open['Date__'].dt.day_name()
+        df2_open['Day_Name'] = df2_open['Date__'].dt.day_name()
+
+        # Reformat to day-month-year
+        df1_open['Date__'] = df1_open['Date__'].dt.strftime('%d-%m-%Y')
+        df2_open['Date__'] = df2_open['Date__'].dt.strftime('%d-%m-%Y')
+        
+        '''Finding the error'''
+        st.write(df1_open)
+        st.write(df2_open)
+
         covers2019 = create_timeries_covers(df1_open)
         covers2022 = create_timeries_covers(df2_open)
+        ''''''
 
         SPH_2019, SPH_2022 = get_SPH(df1_open, df2_open)
 

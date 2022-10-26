@@ -113,7 +113,7 @@ def two():
                     color="#7f7f7f"
                 )
             )
-            #st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True)
 
             # plot as go
             import plotly.graph_objects as go
@@ -280,6 +280,7 @@ def two():
 
 
     try:
+        '''here can I add stuff'''
         # plot ratio data1
         import plotly.graph_objects as go
         fig = go.Figure()
