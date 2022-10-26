@@ -52,11 +52,6 @@ with st.sidebar.expander('Import data'):
 
 if uploaded_file_1 is not None and uploaded_file_2 is not None:
     # save data as csv
-    df_2019_ = pd.read_csv(uploaded_file_1)
-    df_2022_ = pd.read_csv(uploaded_file_2)
-    df_2019_.to_csv('Aloha_Sales_Data_Export_2019.csv', index = True)
-    df_2022_.to_csv('Aloha_Sales_Data_Export_2022.csv', index = True)
-    
     choosen = menu()
 
     # 1. SPHs
