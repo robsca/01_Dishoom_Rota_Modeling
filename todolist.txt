@@ -1,5 +1,9 @@
 # To do list
----
+--------------
+1. Every generated file go into a folder, make things properly
+
+Analyse Data that you have.
+
 - Pattern spending of each restaurant.
 - SPH tracker - Monthly, Weekly, Day Parts
     Considering SPH as efficency value for the server performance, to highlights differences in results.

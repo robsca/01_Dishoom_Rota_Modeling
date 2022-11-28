@@ -1,6 +1,9 @@
 '''
 This algorithm is solving this problem:
 Take a constraint array and transform it into a rota array
+
+streamlit run Algorithm/Esteban.py
+
 '''
 def make_it_binary(constraint):
     '''

@@ -1,7 +1,3 @@
-
-from re import S
-
-
 def file_handler(uploaded_file):
     '''
     This function handles the uploaded file and returns a dataframe
@@ -63,22 +59,21 @@ def create_timeries_employees(data, restaurant):
     import pandas as pd
     '''
     INPUT -> 
-        data, restaurant name, start date, end date, choice of departments
+        data : dataframe
+        restaurant : string
     Output -> 
         It returns a list of dataframe (one for each day) with the Hour, and the Count of empployees working that hour.
         out = [day1, day2, day3, ...]
         day*n = pd.DataFrame([[hour, count], [hour, count], ...], columns=['Hour', 'Count'])
+
 
     '''
     # Modify datetime format in Shift date column
     data['Shift date'] = pd.to_datetime(data['Shift date'])
     data['Shift date'] = data['Shift date'].dt.strftime('%m-%d-%Y')
 
-    # get unique restaurants
+    # filter data for the choosen restaurant
     data_filtered = data[data['Home'] == restaurant]
-
-    #if choice_of_departments != 'All':
-    #   data_filtered = data_filtered[data_filtered['Division']==choice_of_departments]
 
     # Split dataframe by day
     unique_dates = data_filtered['Shift date'].unique()
@@ -91,9 +86,9 @@ def create_timeries_employees(data, restaurant):
     # TRANSFORM DATAFRAME FOR EVERY SINGLE DAY INTO A DATAFRAME WITH THE HOURS AND THE COUNT OF EACH HOUR
     #1.  Create a list with all the shift -> 
     #              list_all_shift =  [ 
-    #                                  [shift1, shift2, shift3, ...],
-    #                                  [shift1, shift2, shift3, ...],
-    #                                  [shift1, shift2, shift3, ...],
+    #                                  [shift1, shift2, shift3, ...], day 1
+    #                                  [shift1, shift2, shift3, ...], day 2
+    #                                  [shift1, shift2, shift3, ...], day 3
     #                                  ...
     #                                ]
     #             shift1 = [start, stop, role]
@@ -560,3 +555,6 @@ def day_part_month_totals(df, day_part):
     # change index to month name
     df.index = df.index.map({1: 'January', 2: 'February', 3: 'March', 4: 'April', 5: 'May', 6: 'June', 7: 'July', 8: 'August', 9: 'September', 10: 'October', 11: 'November', 12: 'December'})
     return df
+
+
+'''DASHBOARD_6'''
